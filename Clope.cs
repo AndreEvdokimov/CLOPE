@@ -120,8 +120,6 @@ namespace CLOPE
                     continue;
                 }
 
-                Debug.Assert(maxProfitClusterId > -1);
-
                 // если лучший кластер - это пустой кластер, то добавим новый пустой кластер
                 if (this.Clusters[maxProfitClusterId].GetN() == 0)
                 {
