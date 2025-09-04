@@ -8,13 +8,9 @@ namespace CLOPE
         private readonly double Repulsion;
         // Массив кластеров
         private List<Cluster> Clusters = new() { new Cluster() };
-        // Словрь <id транзакции : id кластера>
-        private Dictionary<int, int> ClusterMap = new();
-        // Возвращает словарь <id транзакции : id кластера>
-        internal Dictionary<int, int> GetClusterMap()
-        {
-            return this.ClusterMap;
-        }
+        // Индексы кластеров (i - это индекс транзакции)
+        private List<int> ClusterIndexes;
+        
         internal List<Cluster> GetClusters()
         {
             return this.Clusters;
@@ -25,6 +21,8 @@ namespace CLOPE
             Debug.Assert(repulsion > 1.00);
             
             this.Repulsion = repulsion;
+            
+            this.ClusterIndexes = new(new int[transactions.Count]);
 
             this.Init(transactions);
 
@@ -104,13 +102,11 @@ namespace CLOPE
                 int maxProfitClusterId = -1;
                 // Стоимость максимального добавления
                 double maxCostAdd = 0.0;
-                // Транзакция i
-                List<int> currentTransaction = transactions[i];
 
                 for (int j = 0; j < this.Clusters.Count; j++)
                 {
                     // Стоимость добавления транзакции i в кластер j
-                    double сostAdd = DeltaAdd(this.Clusters[j], currentTransaction);
+                    double сostAdd = DeltaAdd(this.Clusters[j], transactions[i]);
 
                     if (сostAdd > maxCostAdd)
                     {
@@ -136,7 +132,7 @@ namespace CLOPE
                 this.Clusters[maxProfitClusterId].AddTransaction(transactions[i]);
 
                 // За транзакцией запишем индекс кластера, в который она входит
-                this.ClusterMap.Add(i, maxProfitClusterId);
+                this.ClusterIndexes[i] = maxProfitClusterId;
             }
         }
 
@@ -148,32 +144,19 @@ namespace CLOPE
             {
                 moved = false;
 
-                Debug.Assert(this.ClusterMap.Count != 0);
-
-                // читаем транзацию
-                for (int i = 0; i < this.ClusterMap.Count; i++)
+                for (int i = 0; i < transactions.Count; i++)
                 {
-                    // Транзакция i
-                    int currentTransactionId = this.ClusterMap.ElementAt(i).Key;
-                    // текущая транзакция
-                    List<int> currentTransaction = transactions[currentTransactionId];
-                    // id кластера i, который содержит транзакцию i
-                    int сlusterWithTransactionId = this.ClusterMap.ElementAt(i).Value;
-                    // Кластер i, который содержит транзакцию i
-                    Cluster сlusterWithTransaction = this.Clusters[сlusterWithTransactionId];
-                    // кластер с максимальной ценой добавления
-                    int maxProfitClusterId = сlusterWithTransactionId;
+                    // Кластер с максимальной стоимостью добавления транзакции
+                    int maxProfitClusterId = this.ClusterIndexes[i];
                     // Стоимость удаления
-                    double removeCoast = this.DeltaRemove(сlusterWithTransaction, currentTransaction);
+                    double removeCoast = this.DeltaRemove(this.Clusters[this.ClusterIndexes[i]], transactions[i]);
                     // Максимальная стоимость перемещения транзакции i
-                    double maxMoveCost = 0.0; 
+                    double maxMoveCost = 0.00; 
                     
                     for (int j = 0; j < this.Clusters.Count; j++)
                     {                        
-                        // Кластер j
-                        Cluster currentClaster = this.Clusters[j];
                         // стоимость перемещения транзакции в кластер j
-                        double currentMoveCost = this.DeltaAdd(currentClaster, currentTransaction) + removeCoast;
+                        double currentMoveCost = this.DeltaAdd(this.Clusters[j], transactions[i]) + removeCoast;
 
                         // если стоимость добавления в кластер j больше, чем в кластер i, то обновим максимальную стоимость
                         if (currentMoveCost > maxMoveCost)
@@ -184,13 +167,13 @@ namespace CLOPE
                     }
 
                     // если кластер j это не кластер i, который записан за транзакцией i
-                    if (сlusterWithTransactionId != maxProfitClusterId)
+                    if (this.ClusterIndexes[i] != maxProfitClusterId)
                     {
-                        this.Clusters[сlusterWithTransactionId].RemoveTransaction(currentTransaction);
-                        this.Clusters[maxProfitClusterId].AddTransaction(currentTransaction);
+                        this.Clusters[this.ClusterIndexes[i]].RemoveTransaction(transactions[i]);
+                        this.Clusters[maxProfitClusterId].AddTransaction(transactions[i]);
 
                         // за транзакцией i закрепляем кластер j
-                        this.ClusterMap[currentTransactionId] = maxProfitClusterId;
+                        this.ClusterIndexes[i] = maxProfitClusterId;
 
                         moved = true;
                     }
