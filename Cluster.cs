@@ -26,7 +26,6 @@
         // Количество всех элементов кластера
         internal int GetS()
         {
-            //this.CheckS();
             return this.S;
         }
 
