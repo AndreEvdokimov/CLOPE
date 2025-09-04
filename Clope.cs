@@ -4,17 +4,109 @@ namespace CLOPE
 {
     internal class Clope
     {
+        protected class Cluster
+        {
+            // Количество транзакций в кластере
+            protected int N;
+            // Количество элементов транзакций, которое содержит кластер (S)
+            protected int S;
+            // Словарь для подсчёта множества уникальных объектов
+            protected Dictionary<int, int> D = new();
+
+            // Возвращает количество транзакций кластере
+            internal int GetN()
+            {
+                return N;
+            }
+
+            // Возвращает ширину кластера (длина). Т.е. количество уникальных элементов кластера
+            internal int GetW()
+            {
+                return this.D.Count;
+            }
+
+            // Количество всех элементов кластера
+            internal int GetS()
+            {
+                return this.S;
+            }
+
+            // Конструктор, создающий новый кластер
+            internal Cluster()
+            {
+                this.N = 0;
+                this.S = 0;
+            }
+
+            // Число вхождений объекта i в кластер
+            internal int Occ(int item)
+            {
+                this.D.TryGetValue(item, out int res);
+
+                return res;
+            }
+
+            // Добавляем элементы транзакции в коллекцию D (уникальные значения)
+            internal void AddTransaction(in List<int> transaction)
+            {
+                for (int i = 0; i < transaction.Count; i++)
+                {
+                    int item = transaction[i];
+
+                    // Если элемент транзакции уже содержится в кластере, увеличим количество вхождений
+                    if (this.D.ContainsKey(item))
+                    {
+                        this.D[item]++;
+                        this.S++;
+                    }
+                    else
+                    {
+                        this.D.Add(item, 1);
+                        // Увеличиваем общее количество элементов кластера
+                        this.S++;
+                    }
+                }
+
+                // Увеличиваем количество транзакций в кластере
+                this.N++;
+            }
+
+            internal void RemoveTransaction(in List<int> transaction)
+            {
+                for (int i = 0; i < transaction.Count; i++)
+                {
+                    int item = transaction[i];
+
+                    // Если элемент транзакции содержится в кластере, уменьшаем количество
+                    if (this.D.ContainsKey(item))
+                    {
+                        this.D[item]--;
+                        // Обновляем количество элементов кластера
+                        this.S--;
+
+                        if (this.D[item] == 0)
+                        {
+                            this.D.Remove(item);
+                        }
+                    }
+                }
+
+                // Уменьшаем общее количество транзакций в кластере
+                this.N--;
+            }
+        }
+
         // Коэффициент отталкивания
         private readonly double Repulsion;
         // Массив кластеров
         private List<Cluster> Clusters = new() { new Cluster() };
         // Индексы кластеров (i - это индекс транзакции)
         private List<int> ClusterIndexes;
-        
-        internal List<Cluster> GetClusters()
-        {
-            return this.Clusters;
-        }
+
+        //internal List<Cluster> GetClusters()
+        //{
+        //    return this.Clusters;
+        //}
 
         internal Clope(in double repulsion, in List<List<int>> transactions)
         {
@@ -27,71 +119,6 @@ namespace CLOPE
             this.Init(transactions);
 
             this.Iteration(transactions);
-        }
-
-        private double DeltaAdd(in Cluster cluster, in List<int> transaction)
-        {
-            double result;
-
-            int newS = cluster.GetS() + transaction.Count;
-            int newW = cluster.GetW();
-
-            for (int i = 0; i < transaction.Count(); i++)
-            {
-                if (cluster.Occ(transaction[i]) == 0)
-                {
-                    newW++;
-                }
-            }
-
-            if (cluster.GetN() == 0)
-            {
-                result = newS / Math.Pow(newW, this.Repulsion);
-            }
-            else
-            {
-                result = (newS * (cluster.GetN() + 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
-            }
-
-            Debug.Assert(!double.IsNaN(result));
-            Debug.Assert(!double.IsInfinity(result));
-
-            // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
-            // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,07454...
-            return Math.Round(result, 2);
-        }
-
-        private double DeltaRemove(in Cluster cluster, in List<int> transaction)
-        {
-            double result;
-
-            int newS = cluster.GetS() - transaction.Count;
-            int newW = cluster.GetW();
-
-            for (int i = 0; i < transaction.Count; i++)
-            {
-                if (cluster.Occ(transaction[i]) == 1)
-                {
-                    newW--;
-                }
-            }
-
-            // Если в кластере не останется элементов
-            if (newW == 0)
-            {
-                result = 0.0;
-            }
-            else
-            {
-                result = (newS * (cluster.GetN() - 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
-            }
-
-            Debug.Assert(!double.IsNaN(result));
-            Debug.Assert(!double.IsInfinity(result));
-
-            // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
-            // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,007454...
-            return Math.Round(result, 2);
         }
 
         private void Init(in List<List<int>> transactions)
@@ -186,6 +213,71 @@ namespace CLOPE
                     this.Clusters.Remove(this.Clusters[i]);
                 }
             }
+        }
+
+        protected double DeltaAdd(in Cluster cluster, in List<int> transaction)
+        {
+            double result;
+
+            int newS = cluster.GetS() + transaction.Count;
+            int newW = cluster.GetW();
+
+            for (int i = 0; i < transaction.Count(); i++)
+            {
+                if (cluster.Occ(transaction[i]) == 0)
+                {
+                    newW++;
+                }
+            }
+
+            if (cluster.GetN() == 0)
+            {
+                result = newS / Math.Pow(newW, this.Repulsion);
+            }
+            else
+            {
+                result = (newS * (cluster.GetN() + 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
+            }
+
+            Debug.Assert(!double.IsNaN(result));
+            Debug.Assert(!double.IsInfinity(result));
+
+            // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
+            // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,07454...
+            return Math.Round(result, 2);
+        }
+
+        protected double DeltaRemove(in Cluster cluster, in List<int> transaction)
+        {
+            double result;
+
+            int newS = cluster.GetS() - transaction.Count;
+            int newW = cluster.GetW();
+
+            for (int i = 0; i < transaction.Count; i++)
+            {
+                if (cluster.Occ(transaction[i]) == 1)
+                {
+                    newW--;
+                }
+            }
+
+            // Если в кластере не останется элементов
+            if (newW == 0)
+            {
+                result = 0.0;
+            }
+            else
+            {
+                result = (newS * (cluster.GetN() - 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
+            }
+
+            Debug.Assert(!double.IsNaN(result));
+            Debug.Assert(!double.IsInfinity(result));
+
+            // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
+            // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,007454...
+            return Math.Round(result, 2);
         }
     }
 }
