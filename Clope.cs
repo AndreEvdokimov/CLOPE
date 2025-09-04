@@ -103,11 +103,6 @@ namespace CLOPE
         // Индексы кластеров (i - это индекс транзакции)
         private List<int> ClusterIndexes;
 
-        //internal List<Cluster> GetClusters()
-        //{
-        //    return this.Clusters;
-        //}
-
         internal Clope(in double repulsion, in List<List<int>> transactions)
         {
             Debug.Assert(repulsion > 1.00);
@@ -128,7 +123,7 @@ namespace CLOPE
                 // id кластера с максимальной ценой добавления
                 int maxProfitClusterId = -1;
                 // Стоимость максимального добавления
-                double maxCostAdd = 0.0;
+                double maxCostAdd = 0.00;
 
                 for (int j = 0; j < this.Clusters.Count; j++)
                 {
@@ -278,6 +273,25 @@ namespace CLOPE
             // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
             // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,007454...
             return Math.Round(result, 2);
+        }
+
+        // Выводит в консоль параметры кластеров (хелпер для удобства проверки результатов)
+        internal void PrintClustersParams() 
+        {
+            int n = 0;
+            int w = 0;
+            int s = 0;
+
+            for (int i = 0; i < this.Clusters.Count; i++)
+            {
+                n += this.Clusters[i].GetN();
+                w += this.Clusters[i].GetW();
+                s += this.Clusters[i].GetS();
+                string str = $"Кластер № {i + 1}; N: {this.Clusters[i].GetN()}; W: {this.Clusters[i].GetW()}; S: {this.Clusters[i].GetS()}";
+                Console.WriteLine(str);
+            }
+
+            Console.WriteLine($"Всего N: {n}; W: {w}; S {s}");
         }
     }
 }
