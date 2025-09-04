@@ -37,23 +37,6 @@
             this.S = 0;
         }
 
-        // Проверяет количество всех элементов в кластере
-        private void CheckS()
-        {
-            int count = 0;
-
-            for (int i = 0; i < this.D.Count; i++)
-            {
-                count += this.D.ElementAt(i).Value;
-            }
-
-            if (count != this.S)
-            {
-                Console.WriteLine("количество элементов в кластаре подсчитывается неправильно!");
-                Console.WriteLine($"S: {this.S}; checkS: {count}");
-            }
-        }
-
         // Число вхождений объекта i в кластер
         internal int Occ(int item)
         {
