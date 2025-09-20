@@ -1,219 +1,396 @@
-﻿using System.Text;
-
+﻿/// <summary>
+/// Импорт текстового файла
+/// </summary>
 internal class ImportText
 {
-    private static int DefineBufferSize(in string path)
+    /// <summary>
+    /// "Читатель" текстового файла
+    /// </summary>
+    private class TextFileReader : IDisposable
     {
-        try
+        /// <summary>
+        /// Поток файла
+        /// </summary>
+        readonly private FileStream fileStream;
+        /// <summary>
+        /// Поток с буффером
+        /// </summary>
+        readonly private BufferedStream bufferedStream;
+        /// <summary>
+        /// Поток чтения
+        /// </summary>
+        readonly private StreamReader reader;
+        /// <summary>
+        /// Количество пропускаемых строк начиная с первой строки
+        /// </summary>
+        readonly private int linesCountSkipped;
+        /// <summary>
+        /// "Утилизирован" ли класс
+        /// </summary>
+        private bool isDisposed = false;
+        /// <summary>
+        /// "Утилизирован" ли класс
+        /// </summary>
+        internal bool IsDisposed => this.isDisposed;
+
+        internal TextFileReader(in string filePath, int linesCountSkipped = 0)
         {
-            FileInfo fileInfo = new(path);
+            this.linesCountSkipped = linesCountSkipped;
 
-            long fileSize = fileInfo.Length;
+            try
+            {
+                int bufferSize = DefineBufferSize(filePath);
 
-            // Console.WriteLine($"File size: {fileSize / 1024 / 1024}MB, Buffer size: {bufferSize / 1024}KB");
-
-            if (fileSize < 1024 * 1024) // < 1MB
-                return 4096; // 4KB
-            else if (fileSize < 10 * 1024 * 1024) // < 10MB
-                return 8192; // 8KB
-            else if (fileSize < 100 * 1024 * 1024) // < 100MB
-                return 16384; // 16KB
-            else if (fileSize < 1024 * 1024 * 1024) // < 1GB
-                return 32768; // 32KB
-            else
-                return 65536; // 64KB для очень больших файлов
+                this.fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                this.bufferedStream = new(fileStream, bufferSize);
+                this.reader = new(bufferedStream, true);
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.Message);
+            }
         }
-        catch (Exception e)
+
+        /// <summary>
+        /// Определяем размер буффера в зависимости от размера файла
+        /// </summary>
+        /// <param name="path">Путь до файла</param>
+        /// <returns></returns>
+        private int DefineBufferSize(in string path)
         {
-            Console.WriteLine(e);
-            return 8192; // Значение по умолчанию
+            try
+            {
+                FileInfo fileInfo = new(path);
+
+                long fileSize = fileInfo.Length;
+
+                // Console.WriteLine($"File size: {fileSize / 1024 / 1024}MB, Buffer size: {bufferSize / 1024}KB");
+
+                if (fileSize < 1024 * 1024) // < 1MB
+                    return 4096; // 4KB
+                else if (fileSize < 10 * 1024 * 1024) // < 10MB
+                    return 8192; // 8KB
+                else if (fileSize < 100 * 1024 * 1024) // < 100MB
+                    return 16384; // 16KB
+                else if (fileSize < 1024 * 1024 * 1024) // < 1GB
+                    return 32768; // 32KB
+                else
+                    return 65536; // 64KB для очень больших файлов
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return 8192; // Значение по умолчанию
+            }
         }
-    }
 
-    // Определяет разделитель. Если не удалось определить разделитель, вернет разделитель ','
-    private static char DefineDelimiter(in string path, in Encoding encoding, in int linesCountAnalize)
-    {
-        char comma = ',';
-        char semicolon = ';';
-        char pipeline = '|';
-
-        Dictionary<char, int> possibleDelimitersCount = new()
+        /// <summary>
+        /// Возвращает строки файла поочереди. Пустые строки пропускаются
+        /// </summary>
+        /// <returns>Строка файла</returns>
+        internal IEnumerable<string> ReadLineSync()
         {
-            { comma, 0 },
-            { semicolon, 0 },
-            { pipeline, 0 },
-        };
+            ThrowIfDisposed();
 
-        try
-        {
-            using StreamReader reader = new(path, encoding);
-
-            int count = 0;
+            int lineId = 0;
 
             string? line;
-
-            while ((line = reader.ReadLine()) != null)
+            while ((line = this.reader.ReadLine()) != null)
             {
-                count++;
-
-                if (count == linesCountAnalize)
+                if (this.linesCountSkipped != 0)
                 {
-                    break;
-                }
+                    lineId++;
 
-                for (int i = 0; i < line.Length; i++)
-                {
-                    switch (line[i])
+                    if (lineId < this.linesCountSkipped)
                     {
-                        case ',':
-                            possibleDelimitersCount[comma]++;
-                            break;
-                        case ';':
-                            possibleDelimitersCount[semicolon]++;
-                            break;
-                        case '|':
-                            possibleDelimitersCount[pipeline]++;
-                            break;
+                        continue;
                     }
                 }
+
+                if (string.IsNullOrEmpty(line)) // пропускаем пустые строки
+                {
+                    continue;
+                }
+
+                yield return line;
             }
         }
-        catch (Exception e)
+
+        /// <summary>
+        /// Сброс указателя на начало потока
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        internal void Reset()
         {
-            throw new Exception($"При чтении файла возникла ошибка. {e.Message}");
+            ThrowIfDisposed();
+
+            try
+            {
+                this.reader.DiscardBufferedData();
+                this.bufferedStream.Flush();
+                this.fileStream.Seek(0, SeekOrigin.Begin);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Ошибка при сбросе позиции файла: {ex.Message}");
+            }
         }
 
-        KeyValuePair<char, int> foundedDelimiter = possibleDelimitersCount.Aggregate((l, r) => l.Value > r.Value ? l : r);
-
-        if (foundedDelimiter.Value == 0)
+        /// <summary>
+        /// Проверка на disposed состояние
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
+        private void ThrowIfDisposed()
         {
-            return ',';
+            if (isDisposed)
+            {
+                throw new ObjectDisposedException(nameof(TextFileReader), "Объект уже освобожден");
+            }
         }
 
-        return foundedDelimiter.Key;
+        /// <summary>
+        /// Реализация IDisposable
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Освобождает ресурсы
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!isDisposed)
+            {
+                // Освобождаем управляемые ресурсы в правильном порядке
+                reader.Dispose();
+                bufferedStream.Dispose();
+                fileStream.Dispose();
+            }
+
+            isDisposed = true;
+        }
+
+        /// <summary>
+        /// Финализатор
+        /// </summary>
+        ~TextFileReader()
+        {
+            Dispose(false);
+        }
     }
 
-    private static int DefineFieldsCount(in string path, in char delimiter, in int linesCountAnalize, in Encoding encoding)
+    /// <summary>
+    /// Набор данных
+    /// </summary>
+    private DataSet dataSet;
+    /// <summary>
+    /// "Читатель" текстового файла
+    /// </summary>
+    readonly private TextFileReader reader;
+    /// <summary>
+    /// Набор данных
+    /// </summary>
+    internal DataSet DataSet => this.dataSet;
+
+    internal ImportText(in string filePath, in char delimiter, in char nullValue, in int? skippedlinesCount = null)
+    { 
+        this.CheckFileExtension(filePath);
+
+        this.reader = new TextFileReader(filePath, skippedlinesCount ?? 0);
+
+        this.DefineFieldsCount(delimiter, out int fieldsCount);
+
+        this.dataSet = new(fieldsCount);
+
+        this.ReadFields(filePath, fieldsCount, delimiter, nullValue);
+    }
+
+    internal ImportText(in string filePath, in char? nullValue = null, in int? skippedlinesCount = null)
     {
-        int res = 0;
+        this.CheckFileExtension(filePath);
 
-        try
+        this.reader = new TextFileReader(filePath, skippedlinesCount ?? 0);
+
+        this.ParsLine(out char delimiter, out int fieldsCount);
+
+        this.dataSet = new(fieldsCount);
+
+        this.ReadFields(filePath, fieldsCount, delimiter, nullValue ?? '?');
+    }
+
+    /// <summary>
+    /// Парсит строку, возвращяя разделитель и количество полей
+    /// </summary>
+    /// <param name="delimiter"></param>
+    /// <param name="fieldsCount"></param>
+    private void ParsLine(out char delimiter, out int fieldsCount)
+    {
+        char[] delimiters = { ',', ';', '|', '\t', ' ' };
+        int[] counts = new int[4]; // comma, semicolon, pipeline, tab, space
+        string analyzedLine = "";
+
+        foreach (string line in this.reader.ReadLineSync()) // из файла получаем строку для анализа
         {
-            using StreamReader streamReader = new(path, encoding);
+            analyzedLine = line;
 
-            int count = 0;
+            this.reader.Reset(); // возвращаем указатель в начало файла
 
-            string? line;
+            break;
+        }
 
+        for (int i = 0; i < analyzedLine.Length; i++)
+        {
+            char c = analyzedLine[i];
 
-            while ((line = streamReader.ReadLine()) != null)
+            switch (c)
             {
-                count++;
-
-                if (count == linesCountAnalize)
-                {
+                case ',':
+                    counts[0]++;
                     break;
-                }
-
-                // разбиваем строку на массив элементов
-                string[] rowItems = line.Split(delimiter);
-
-                if (rowItems.Length > res)
-                {
-                    res = rowItems.Length;
-                }
+                case ';':
+                    counts[1]++;
+                    break;
+                case '|':
+                    counts[2]++;
+                    break;
+                case '\t':
+                    counts[3]++;
+                    break;
+                case ' ':
+                    counts[4]++;
+                    break;
             }
         }
-        catch (Exception e)
+
+        int maxCount = 0;
+        int maxIndex = 0;
+
+        for (int i = 0; i < counts.Length; i++)
         {
-            throw new Exception($"При чтении файла возникла ошибка. {e.Message}");
+            if (counts[i] > maxCount)
+            {
+                maxCount = counts[i];
+                maxIndex = i;
+            }
         }
 
-        return res;
+        // Возвращаем разделитель с максимальным количеством или запятую по умолчанию
+        delimiter = maxCount > 0 ? delimiters[maxIndex] : ',';
+
+        fieldsCount = analyzedLine.Split(delimiter).Length;
     }
 
-    // Возвращает массив данных файла в котором каждый массив это поле (столбец)
-    private static List<List<string>> GetFields(in string path, in int fieldsCount, in Encoding encoding, in char delimiter = ',', in char nullValue = '?')
+    /// <summary>
+    /// Возвращает количество полей в файле
+    /// </summary>
+    /// <param name="delimiter">Разделить строк</param>
+    /// <param name="fieldsCount">Количество полей</param>
+    private void DefineFieldsCount(char delimiter, out int fieldsCount)
     {
-        List<List<string>> fields = new List<List<string>>(fieldsCount);
+        string analyzedLine = "";
 
-        for (int i = 0; i < fieldsCount; i++)
+        foreach (string line in this.reader.ReadLineSync()) // из файла получаем строку для анализа
         {
-            fields.Add(new List<string>());
+            analyzedLine = line;
+
+            this.reader.Reset(); // возвращаем указатель в начало файла
+
+            break;
         }
 
+        fieldsCount = analyzedLine.Split(delimiter).Length;
+    }
+
+    /// <summary>
+    /// Читает поля файла
+    /// </summary>
+    /// <param name="path">Путь к файлу</param>
+    /// <param name="fieldsCount">Количество полей</param>
+    /// <param name="delimiter">Разделитель строк</param>
+    /// <param name="nullValue">Значение для null</param>
+    /// <exception cref="Exception"></exception>
+    private void ReadFields(string path, int fieldsCount, char delimiter, char nullValue)
+    {
         try
         {
-            // Размер буффера
-            int bufferSize = DefineBufferSize(path);
+            for (int i = 0; i < fieldsCount; i++) // подготовим поля
+            {
+                this.dataSet.AddColumn($"COL{i}");
+            }
 
-            using FileStream fileStream = new(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using BufferedStream bufferedStream = new(fileStream, bufferSize);
-            using StreamReader reader = new(bufferedStream, encoding, true);
-
-            string? line;
-
-            while ((line = reader.ReadLine()) != null)
+            foreach (string line in this.reader.ReadLineSync())
             {
                 // разбиваем строку на массив элементов
-                string[] rowItems = line.Split(delimiter);
-
-                int rowLength = 0;
-
-                if (rowItems.Length > fieldsCount)
-                {
-                    rowLength = fieldsCount;
-                }
-                else
-                {
-                    rowLength = rowItems.Length;
-                }
+                string[] lineItems = line.Split(delimiter);
 
                 // каждый вложенный массив - это поле (столбец файла)
-                for (int i = 0; i < rowLength; i++)
+                for (int i = 0; i < fieldsCount; i++)
                 {
-                    if (string.IsNullOrWhiteSpace(rowItems[i]) || (rowItems[i] == nullValue.ToString()))
+                    if (i > lineItems.Length)
                     {
-                        fields[i].Add("NULL");
+                        break;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(lineItems[i]) || (lineItems[i] == nullValue.ToString()))
+                    {
+                        this.dataSet[i].AddValue("NULL");
                     }
                     else
                     {
-                        fields[i].Add(rowItems[i].Trim());
+                        this.dataSet[i].AddValue(lineItems[i].Trim());
                     }
                 }
 
-                if (rowLength < fieldsCount)
+                if (lineItems.Length < fieldsCount)
                 {
-                    // Если количество символов (столбцов) в строке меньше определенного методом DefineFieldsCount(),
-                    // то в место нехватающих символом добавим NULL - пустое значение
-                    for (int i = rowItems.Length; i <= fieldsCount - 1; i++)
+                    // Если количество символов (столбцов) в строке меньше определенного,
+                    // то вместо нехватающих символом добавим NULL - пустое значение
+                    for (int i = lineItems.Length; i < fieldsCount; i++)
                     {
-                        fields[i].Add("NULL");
+                        this.dataSet[i].AddValue("NULL");
                     }
                 }
+            }
+
+            this.reader.Dispose();
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Во время импорта произошла ошибка. {e.Message}");
+        }
+        finally
+        {
+            if (!reader.IsDisposed) { this.reader.Dispose(); }
+        }
+    }
+
+    /// <summary>
+    /// Проверяет расширение файла и выводит в консоль сообщение, если расширение не соответствует текстовому файлу
+    /// </summary>
+    /// <param name="path"></param>
+    /// <exception cref="Exception"></exception>
+    private void CheckFileExtension(string path)
+    {
+        string[] textExtensions = { ".txt", ".csv", ".tsv", ".tab", ".data" };
+
+        try
+        {
+            string extension = Path.GetExtension(path).ToLowerInvariant();
+
+            if (!(textExtensions.Contains(extension)))
+            {
+                Console.WriteLine("Ожидалось, что будет передан текстовый файл.");
+                Console.WriteLine($"Вместо него передан файл с расширением '{extension}'.");
+                throw new Exception("Для чтения передан не текстовый файл");
             }
         }
         catch (Exception e)
         {
-            throw new Exception($"При чтении файла возникла ошибка. {e.Message}");
+            throw new Exception($"При проверке файла возникла ошибка. {e.Message}");
         }
-
-        return fields;
-    }
-
-    internal static List<List<string>> FileData(in string path, in Encoding encoding, in int linesCountAnalize = 50)
-    { 
-        char delimiter = DefineDelimiter(path, encoding, linesCountAnalize);
-
-        int fieldsCount = DefineFieldsCount(path, delimiter, linesCountAnalize, encoding);
-
-        return GetFields(path, fieldsCount, encoding, delimiter);
-    }
-
-    internal static List<List<string>> FileData(in string path, in char delimiter, in char nullValue, in Encoding encoding, in int linesCountAnalize = 50)
-    {
-        int fieldsCount = DefineFieldsCount(path, delimiter, linesCountAnalize, encoding);
-
-        return GetFields(path, fieldsCount, encoding, delimiter, nullValue);
     }
 }
