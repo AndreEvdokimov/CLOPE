@@ -1,223 +1,158 @@
 ﻿using System.Diagnostics;
 
-namespace CLOPE
+/// <summary>
+/// Алгоритм CLOPE
+/// </summary>
+internal class Clope
 {
-    internal class Clope
+    /// <summary>
+    /// Движок алгоритма
+    /// </summary>
+    protected class ClopeEngine
     {
-        protected class Cluster
+        /// <summary>
+        /// Кластер
+        /// </summary>
+        internal class Cluster
         {
-            // Количество транзакций в кластере
-            protected int N;
-            // Количество элементов транзакций, которое содержит кластер (S)
-            protected int S;
-            // Словарь для подсчёта множества уникальных объектов
-            protected Dictionary<int, int> D = new();
+            /// <summary>
+            /// Количество транзакций в кластере
+            /// </summary>
+            private int n;
+            /// <summary>
+            /// Количество элементов транзакций, которое содержит кластер (S)
+            /// </summary>
+            private int s;
+            /// <summary>
+            /// Словарь для подсчёта множества уникальных объектов
+            /// </summary>
+            private Dictionary<object, int> d;
+            /// <summary>
+            /// Количество транзакций в кластере
+            /// </summary>
+            internal int N => this.n;
+            /// <summary>
+            /// Количество уникальных значений кластера
+            /// </summary>
+            internal int W => this.d.Count;
+            /// <summary>
+            /// Количество элементов транзакций, которое содержит кластер (S)
+            /// </summary>
+            internal int S => this.s;
 
-            // Возвращает количество транзакций кластере
-            internal int GetN()
-            {
-                return N;
-            }
-
-            // Возвращает ширину кластера (длина). Т.е. количество уникальных элементов кластера
-            internal int GetW()
-            {
-                return this.D.Count;
-            }
-
-            // Количество всех элементов кластера
-            internal int GetS()
-            {
-                return this.S;
-            }
-
-            // Конструктор, создающий новый кластер
             internal Cluster()
             {
-                this.N = 0;
-                this.S = 0;
+                this.d = new Dictionary<object, int>();
+                this.n = 0;
+                this.s = 0;
             }
 
-            // Число вхождений объекта i в кластер
-            internal int Occ(int item)
+            /// <summary>
+            /// Возвращает число вхождений объекта транзакции в кластер
+            /// </summary>
+            /// <param name="item">Элемент транзакции</param>
+            /// <returns>Число вхождений объекта транзакции в кластер</returns>
+            internal int Occ(object item)
             {
-                this.D.TryGetValue(item, out int res);
-
-                return res;
+                return this.d.GetValueOrDefault(item, 0);
             }
 
-            // Добавляем элементы транзакции в коллекцию D (уникальные значения)
-            internal void AddTransaction(in List<int> transaction)
+            /// <summary>
+            /// Добавляет транзакцию в кластер
+            /// </summary>
+            /// <param name="transaction">Транзакция</param>
+            internal void AddTransaction(in ITransaction transaction)
             {
                 for (int i = 0; i < transaction.Count; i++)
                 {
-                    int item = transaction[i];
-
-                    // Если элемент транзакции уже содержится в кластере, увеличим количество вхождений
-                    if (this.D.ContainsKey(item))
+                    if (this.d.ContainsKey(transaction[i]))
                     {
-                        this.D[item]++;
-                        this.S++;
+                        this.d[transaction[i]]++;
+                        this.s++;
                     }
                     else
                     {
-                        this.D.Add(item, 1);
-                        // Увеличиваем общее количество элементов кластера
-                        this.S++;
+                        this.d.Add(transaction[i], 1);
+                        this.s++;
                     }
                 }
 
-                // Увеличиваем количество транзакций в кластере
-                this.N++;
+                this.n++;
             }
 
-            internal void RemoveTransaction(in List<int> transaction)
+            /// <summary>
+            /// Удаляет транзакцию из кластера
+            /// </summary>
+            /// <param name="transaction">Транзакция</param>
+            internal void RemoveTransaction(in ITransaction transaction)
             {
                 for (int i = 0; i < transaction.Count; i++)
                 {
-                    int item = transaction[i];
-
-                    // Если элемент транзакции содержится в кластере, уменьшаем количество
-                    if (this.D.ContainsKey(item))
+                    if (this.d.ContainsKey(transaction[i]))
                     {
-                        this.D[item]--;
-                        // Обновляем количество элементов кластера
-                        this.S--;
+                        this.d[transaction[i]]--;
+                        this.s--;
 
-                        if (this.D[item] == 0)
+                        if (this.d[transaction[i]] == 0)
                         {
-                            this.D.Remove(item);
+                            this.d.Remove(transaction[i]);
                         }
                     }
                 }
 
-                // Уменьшаем общее количество транзакций в кластере
-                this.N--;
+                this.n--;
             }
         }
 
-        // Коэффициент отталкивания
-        private readonly double Repulsion;
-        // Массив кластеров
-        private List<Cluster> Clusters = new() { new Cluster() };
-        // Индексы кластеров (i - это индекс транзакции)
-        private List<int> ClusterIndexes;
+        /// <summary>
+        /// Коэффициент отталкивания
+        /// </summary>
+        private readonly double repulsion;
+        /// <summary>
+        /// Список кластеров
+        /// </summary>
+        private readonly List<Cluster> clusters;
+        /// <summary>
+        /// Словарь [id транзакции : id кластера]
+        /// </summary>
+        private Dictionary<object, int> clustersMap;
+        /// <summary>
+        /// Список кластеров
+        /// </summary>
+        internal List<Cluster> CLusters => this.clusters;
+        /// <summary>
+        /// Словарь [id транзакции : id кластера]
+        /// </summary>
+        internal Dictionary<object, int> ClustersMap => this.clustersMap;
 
-        internal Clope(in double repulsion, in List<List<int>> transactions)
+        internal ClopeEngine(in double repulsion, in TransactionData transactions)
         {
-            Debug.Assert(repulsion > 1.00);
-            
-            this.Repulsion = repulsion;
-            
-            this.ClusterIndexes = new(new int[transactions.Count]);
-
-            this.Init(transactions);
-
-            this.Iteration(transactions);
-        }
-
-        private void Init(in List<List<int>> transactions)
-        {
-            for (int i = 0; i < transactions.Count; i++)
+            if (repulsion < 1.00)
             {
-                // id кластера с максимальной ценой добавления
-                int maxProfitClusterId = -1;
-                // Стоимость максимального добавления
-                double maxCostAdd = 0.00;
-
-                for (int j = 0; j < this.Clusters.Count; j++)
-                {
-                    // Стоимость добавления транзакции i в кластер j
-                    double сostAdd = DeltaAdd(this.Clusters[j], transactions[i]);
-
-                    if (сostAdd > maxCostAdd)
-                    {
-                        maxCostAdd = сostAdd;    // Максимальный DeltaAdd увеличивает Profit
-                        maxProfitClusterId = j;
-                    }
-                }
-
-                if (maxProfitClusterId == -1) // значит для текущей транзакции не нашли кластер, который бы увеличивал Profit
-                {
-                    continue;
-                }
-
-                // если лучший кластер - это пустой кластер, то добавим новый пустой кластер
-                if (this.Clusters[maxProfitClusterId].GetN() == 0)
-                {
-                    this.Clusters.Add(new Cluster());
-                }
-
-                // Добавим транзакцию в кластер с наибольшей стоимостью добавления
-                this.Clusters[maxProfitClusterId].AddTransaction(transactions[i]);
-
-                // За транзакцией запишем индекс кластера, в который она входит
-                this.ClusterIndexes[i] = maxProfitClusterId;
+                throw new Exception($"Для репульсии допустимо значение больше 1.0. Передано значение: ${repulsion}");
             }
+
+            this.repulsion = repulsion;
+            this.clusters = new List<Cluster>() { new Cluster() };
+            this.clustersMap = new Dictionary<object, int>();
+
+            this.Run(transactions);
         }
 
-        private void Iteration(in List<List<int>> transactions)
-        {
-            bool moved;
-
-            do
-            {
-                moved = false;
-
-                for (int i = 0; i < transactions.Count; i++)
-                {
-                    // Кластер с максимальной стоимостью добавления транзакции
-                    int maxProfitClusterId = this.ClusterIndexes[i];
-                    // Стоимость удаления
-                    double removeCoast = this.DeltaRemove(this.Clusters[this.ClusterIndexes[i]], transactions[i]);
-                    // Максимальная стоимость перемещения транзакции i
-                    double maxMoveCost = 0.00; 
-                    
-                    for (int j = 0; j < this.Clusters.Count; j++)
-                    {                        
-                        // стоимость перемещения транзакции в кластер j
-                        double currentMoveCost = this.DeltaAdd(this.Clusters[j], transactions[i]) + removeCoast;
-
-                        // если стоимость добавления в кластер j больше, чем в кластер i, то обновим максимальную стоимость
-                        if (currentMoveCost > maxMoveCost)
-                        {
-                            maxMoveCost = currentMoveCost;
-                            maxProfitClusterId = j;
-                        }
-                    }
-
-                    // если кластер j это не кластер i, который записан за транзакцией i
-                    if (this.ClusterIndexes[i] != maxProfitClusterId)
-                    {
-                        this.Clusters[this.ClusterIndexes[i]].RemoveTransaction(transactions[i]);
-                        this.Clusters[maxProfitClusterId].AddTransaction(transactions[i]);
-
-                        // за транзакцией i закрепляем кластер j
-                        this.ClusterIndexes[i] = maxProfitClusterId;
-
-                        moved = true;
-                    }
-                }
-            } while (moved);
-
-            // Удаляем пустые кластеры
-            for (int i = 0; i < this.Clusters.Count; i++)
-            {
-                if (this.Clusters[i].GetN() == 0)
-                {
-                    this.Clusters.Remove(this.Clusters[i]);
-                }
-            }
-        }
-
-        protected double DeltaAdd(in Cluster cluster, in List<int> transaction)
+        /// <summary>
+        /// Определяет стоимость добавления транзакции в кластер
+        /// </summary>
+        /// <param name="cluster">Кластер</param>
+        /// <param name="transaction">Транзакция</param>
+        /// <returns>Стоимость добавления транзакции в кластер</returns>
+        private double DeltaAdd(in Cluster cluster, in ITransaction transaction)
         {
             double result;
 
-            int newS = cluster.GetS() + transaction.Count;
-            int newW = cluster.GetW();
+            int newS = cluster.S + transaction.Count;
+            int newW = cluster.W;
 
-            for (int i = 0; i < transaction.Count(); i++)
+            for (int i = 0; i < transaction.Count; i++)
             {
                 if (cluster.Occ(transaction[i]) == 0)
                 {
@@ -225,13 +160,13 @@ namespace CLOPE
                 }
             }
 
-            if (cluster.GetN() == 0)
+            if (cluster.N == 0)
             {
-                result = newS / Math.Pow(newW, this.Repulsion);
+                result = newS / Math.Pow(newW, this.repulsion);
             }
             else
             {
-                result = (newS * (cluster.GetN() + 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
+                result = (newS * (cluster.N + 1) / Math.Pow(newW, this.repulsion)) - (cluster.S * cluster.N) / Math.Pow(cluster.W, this.repulsion);
             }
 
             Debug.Assert(!double.IsNaN(result));
@@ -242,12 +177,18 @@ namespace CLOPE
             return Math.Round(result, 2);
         }
 
-        protected double DeltaRemove(in Cluster cluster, in List<int> transaction)
+        /// <summary>
+        /// Определяет стоимость удаления транзакции из кластера
+        /// </summary>
+        /// <param name="cluster">Кластер</param>
+        /// <param name="transaction">Транзакция</param>
+        /// <returns>Стоимость удаления транзакции из кластера</returns>
+        private double DeltaRemove(in Cluster cluster, in ITransaction transaction)
         {
             double result;
 
-            int newS = cluster.GetS() - transaction.Count;
-            int newW = cluster.GetW();
+            int newS = cluster.S - transaction.Count;
+            int newW = cluster.W;
 
             for (int i = 0; i < transaction.Count; i++)
             {
@@ -264,7 +205,7 @@ namespace CLOPE
             }
             else
             {
-                result = (newS * (cluster.GetN() - 1) / Math.Pow(newW, this.Repulsion)) - (cluster.GetS() * cluster.GetN()) / Math.Pow(cluster.GetW(), this.Repulsion);
+                result = (newS * (cluster.N - 1) / Math.Pow(newW, this.repulsion)) - (cluster.S * cluster.N) / Math.Pow(cluster.W, this.repulsion);
             }
 
             Debug.Assert(!double.IsNaN(result));
@@ -275,23 +216,151 @@ namespace CLOPE
             return Math.Round(result, 2);
         }
 
-        // Выводит в консоль параметры кластеров (хелпер для удобства проверки результатов)
-        internal void PrintClustersParams() 
+        /// <summary>
+        /// Выполнение алгоритма
+        /// </summary>
+        /// <param name="transactions">Транзакция</param>
+        private void Run(in TransactionData transactions)
         {
-            int n = 0;
-            int w = 0;
-            int s = 0;
-
-            for (int i = 0; i < this.Clusters.Count; i++)
+            foreach (ITransaction transaction in transactions.GetTransaction()) // init
             {
-                n += this.Clusters[i].GetN();
-                w += this.Clusters[i].GetW();
-                s += this.Clusters[i].GetS();
-                string str = $"Кластер № {i + 1}; N: {this.Clusters[i].GetN()}; W: {this.Clusters[i].GetW()}; S: {this.Clusters[i].GetS()}";
-                Console.WriteLine(str);
+                int maxProfitClusterId = -1;
+                double maxCostAdd = 0.00;
+
+                for (int j = 0; j < this.clusters.Count; j++)
+                {
+                    double costAdd = DeltaAdd(this.clusters[j], transaction);
+
+                    if (costAdd > maxCostAdd)
+                    {
+                        maxCostAdd = costAdd;
+                        maxProfitClusterId = j;
+                    }
+                }
+
+                if (maxProfitClusterId == -1) // значит для текущей транзакции не нашли кластер, который бы увеличивал Profit
+                {
+                    continue;
+                }
+
+                if (this.clusters[maxProfitClusterId].N == 0)
+                {
+                    this.clusters.Add(new Cluster());
+                }
+
+                this.clusters[maxProfitClusterId].AddTransaction(transaction);
+                this.clustersMap.Add(transaction.Id, maxProfitClusterId);
             }
 
-            Console.WriteLine($"Всего N: {n}; W: {w}; S {s}");
+            bool moved;
+
+            do // iter
+            {
+                moved = false;
+
+                foreach (ITransaction transaction in transactions.GetTransaction())
+                {
+                    int maxProfitClusterId = this.clustersMap[transaction.Id];
+                    double removeCost = this.DeltaRemove(this.clusters[this.clustersMap[transaction.Id]], transaction);
+                    double maxMoveCost = 0.00;
+
+                    for (int j = 0; j < this.clusters.Count; j++)
+                    {
+                        double currentMoveCost = this.DeltaAdd(this.clusters[j], transaction) + removeCost;
+
+                        if (currentMoveCost > maxMoveCost)
+                        {
+                            maxMoveCost = currentMoveCost;
+                            maxProfitClusterId = j;
+                        }
+                    }
+
+                    if (this.clustersMap[transaction.Id] != maxProfitClusterId)
+                    {
+                        this.clusters[this.clustersMap[transaction.Id]].RemoveTransaction(transaction);
+                        this.clusters[maxProfitClusterId].AddTransaction(transaction);
+                        this.clustersMap[transaction.Id] = maxProfitClusterId; // за транзакцией закрепляем кластер j
+
+                        moved = true;
+                    }
+                }
+            } while (moved);
+
+            for (int i = 0; i < this.clusters.Count; i++)
+            {
+                if (this.clusters[i].N == 0)
+                {
+                    this.clusters.Remove(this.clusters[i]);
+                }
+            }
         }
     }
+
+    /// <summary>
+    /// Таблица 1: Id транзакции, 2: Id кластера
+    /// </summary>
+    internal DataSet OutputTable { get; }
+    /// <summary>
+    /// Таблица c характеристиками кластеров
+    /// </summary>
+    internal DataSet ClusterCharacteristicsTable { get; }
+
+    internal Clope(in double repulsion, in TransactionData transactions)
+    {
+        ClopeEngine engine = new(repulsion, transactions);
+
+        OutputTable = new(2);
+        this.ClusterCharacteristicsTable = new(4);
+
+        this.PrepareClusterCharacteristicsTable(engine.CLusters);
+        this.PrepareOutputTable(engine.ClustersMap);
+    }
+
+    /// <summary>
+    /// Подготавливает таблицу с характеристиками кластеров
+    /// </summary>
+    private void PrepareClusterCharacteristicsTable(List<ClopeEngine.Cluster> clusters)
+    {
+        //int clusterCount = 0;
+        //int n = 0;
+        //int w = 0;
+        //int s = 0;
+
+        this.ClusterCharacteristicsTable.AddColumn("Номер кластера");
+        this.ClusterCharacteristicsTable.AddColumn("N");
+        this.ClusterCharacteristicsTable.AddColumn("W");
+        this.ClusterCharacteristicsTable.AddColumn("S");
+
+        for (int i = 0; i < clusters.Count; i++)
+        {
+
+            //clusterCount++;
+            //n += this.clusters[i].N;
+            //w += this.clusters[i].W;
+            //s += this.clusters[i].S;
+
+            this.ClusterCharacteristicsTable[0].AddValue(i);
+            this.ClusterCharacteristicsTable[1].AddValue(clusters[i].N);
+            this.ClusterCharacteristicsTable[2].AddValue(clusters[i].W);
+            this.ClusterCharacteristicsTable[3].AddValue(clusters[i].S);
+
+            //string str = $"Кластер № {i + 1}; N: {this.clusters[i].N}; W: {this.clusters[i].W}; S: {this.clusters[i].S}";
+            //Console.WriteLine(str); // для отладки
+        }
+
+        //Console.WriteLine($"Всего Кластеров: {clusterCount}; N: {n}; W: {w}; S {s}"); // для отладки
+    }
+
+    /// <summary>
+    /// Подготавливает таблице с результатами
+    /// </summary>
+    private void PrepareOutputTable(Dictionary<object, int> clustersMap)
+    {
+        this.OutputTable.AddColumn("Номер транзакции");
+        this.OutputTable.AddColumn("Кластер");
+
+        this.OutputTable[0].Data = [.. clustersMap.Keys];
+        this.OutputTable[1].Data = [.. clustersMap.Values];
+    }
+
 }
