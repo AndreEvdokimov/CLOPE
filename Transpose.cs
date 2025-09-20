@@ -8,7 +8,7 @@ internal static class Transpose
     /// </summary>
     /// <param name="data"></param>
     /// <returns>DataSet с двумя полями: номер строки и данные переданного dataSet-а</returns>
-    internal static DataSet TransposeDataSet(in DataSet data)
+    internal static DataSet TransposeDataSet(in DataSet data) // По хорошему добавлять поле с индексами нужно в отдельном методе
     {
         DataSet res = new DataSet(2);
 
