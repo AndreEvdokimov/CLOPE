@@ -1,6 +1,4 @@
-﻿using CLOPE;
-using System.Text;
-internal class Program
+﻿internal class Program
 {
     static void Main(string[] args)
     {
@@ -14,22 +12,49 @@ internal class Program
         string filePath = Helpers.GetFilePathFromConsole();
 
         // Загружаем данные из файла
-        List<List<string>> data = ImportText.FileData(filePath, Encoding.UTF8);
+        ImportText importText = new ImportText(filePath);
+        
+        DataSet dataSet = importText.DataSet;
 
-        // Подготавливаем транзакции в виде взаимно однозначного отображения между множеством уникальных объектов таблицы и множеством целых чисел
-        List<List<int>> transactions = OneToOneMappingTable.GetOneToOneMappingTable(data, [0]);
+        //Preview.PrintTable(dataSet, 50);
+
+        if (dataSet.Count < 2) 
+        {
+            throw new Exception("Данные должны содержать две и более колонки");
+        } 
+        else if (dataSet.Count > 2)
+        {
+            dataSet = Transpose.TransposeDataSet(dataSet);
+
+        }
+
+        //Preview.PrintTable(dataSet, 50);
+
+        TransactionData transactions = new TransactionData(dataSet, 0, 1);
 
         // Запускаем Clope
         Clope clope = new(repulsion, transactions);
 
-        // Получаем разбиение на кластеры
-        Dictionary<int, int> clopeRes = clope.GetClusterMap();
-        
-        // Выводим разбиение в консоль
-        Helpers.PrintClustersParams(clope.GetClusters());
+        //Preview.PrintTable(clope.OutputTable);
+        Preview.PrintTable(clope.ClusterCharacteristicsTable);
 
-        //Helpers.WriteClusterMapFile(clopeRes, resFilePath);
+        //Preview.PrintTable(tr.items, 50);
 
-        //Helpers.PrintTable(data);
+        //for (int i = 0; i < 66; i++)
+        //{
+        //    Console.WriteLine(tr.items[i].ToString());
+        //}
+
+        //int ifw = 0;
+        //foreach (TransactionData.Transaction trans in tr.GetTransaction())
+        //{
+        //    ifw++;
+        //    for (int i = 0; i < trans.Count; i++)
+        //    {
+        //        Console.WriteLine(trans[i].ToString());
+        //    }
+
+        //    if (ifw == 26) { break; }
+        //}
     }
 }
