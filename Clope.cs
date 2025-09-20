@@ -26,7 +26,7 @@ internal class Clope
             /// <summary>
             /// Словарь для подсчёта множества уникальных объектов
             /// </summary>
-            private Dictionary<object, int> d;
+            private Dictionary<int, int> d;
             /// <summary>
             /// Количество транзакций в кластере
             /// </summary>
@@ -42,7 +42,7 @@ internal class Clope
 
             internal Cluster()
             {
-                this.d = new Dictionary<object, int>();
+                this.d = new Dictionary<int, int>();
                 this.n = 0;
                 this.s = 0;
             }
@@ -52,7 +52,7 @@ internal class Clope
             /// </summary>
             /// <param name="item">Элемент транзакции</param>
             /// <returns>Число вхождений объекта транзакции в кластер</returns>
-            internal int Occ(object item)
+            internal int Occ(int item)
             {
                 return this.d.GetValueOrDefault(item, 0);
             }
