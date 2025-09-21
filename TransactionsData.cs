@@ -8,7 +8,7 @@ interface ITransaction
     /// </summary>
     object Id { get; }
     /// <summary>
-    /// Список данных
+    /// Элементы
     /// </summary>
     List<int> Items { get; }
     /// <summary>
@@ -54,29 +54,29 @@ internal class TransactionData
     /// </summary>
     private List<int> items;
 
-    internal TransactionData(in DataSet data, in int colIds, in int colData)
+    internal TransactionData(in DataSet data, in int colIndicesId, in int colItemsId)
     {
-        this.indices = new List<object>(data[colIds].Count);
-        this.items = new List<int>(data[colData].Count);
-        DataSet sorted = Sorting.SortASC(data, colIds); // При необходимости выполним сортировку по возрастанию по колонке с ID транзакций
+        this.indices = new List<object>(data[colIndicesId].Count);
+        this.items = new List<int>(data[colItemsId].Count);
+        DataSet sortedData = Sorting.SortASC(data, colIndicesId); // При необходимости выполним сортировку по возрастанию по колонке с ID транзакций
 
-        this.NormolizeData(sorted, colIds, colData);
+        this.NormolizeData(sortedData, colIndicesId, colItemsId);
     }
 
     /// <summary>
     /// Возвращает нормализованные данные: итоговые данные содержат индексы, которые соответствуют своим уникальным значениям входных данных
     /// </summary>
     /// <param name="data">Данные</param>
-    /// <param name="colIndices">Индекс поля, содержащего индексы транзакций</param>
-    /// <param name="colItems">Индекс поля, содержащего элементы транзакций</param>
-    private void NormolizeData(DataSet data, in int colIndices, in int colItems)
+    /// <param name="colIndicesId">Индекс поля, содержащего индексы транзакций</param>
+    /// <param name="colItemsId">Индекс поля, содержащего элементы транзакций</param>
+    private void NormolizeData(DataSet data, in int colIndicesId, in int colItemsId)
     {
-        Dictionary<object, int> uniqIndices = new Dictionary<object, int>(); // каждый словарь хранит записи <уникальное значеное: индекс>
-        IColumn indexColumn = data[colIndices]; // поле с идексами транзакций
-        IColumn itemColumn = data[colItems];
+        Dictionary<object, int> uniqIndices = new Dictionary<object, int>(); // записи <уникальное значение транзакции: уникальный индекс>
+        IColumn indexColumn = data[colIndicesId]; // поле с идексами транзакций
+        IColumn itemColumn = data[colItemsId];
 
         int index = 0; // Уникальный индекс элемента транзации
-        int offset = 0; // смещение
+        int offset = 0; // Смещение
 
         while (offset < indexColumn.Count)
         {
