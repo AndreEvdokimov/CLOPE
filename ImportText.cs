@@ -191,11 +191,11 @@ internal class ImportText
     /// </summary>
     internal DataSet DataSet => this.dataSet;
 
-    internal ImportText(in string filePath, in char delimiter, in char nullValue, in int? skippedlinesCount = null)
+    internal ImportText(in string filePath, in char delimiter, in char nullValue, in int skippedlinesCount)
     { 
         this.CheckFileExtension(filePath);
 
-        this.reader = new TextFileReader(filePath, skippedlinesCount ?? 0);
+        this.reader = new TextFileReader(filePath, skippedlinesCount);
 
         this.DefineFieldsCount(delimiter, out int fieldsCount);
 
