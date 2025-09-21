@@ -190,6 +190,15 @@ internal class ImportText
     /// Набор данных
     /// </summary>
     internal DataSet DataSet => this.dataSet;
+    /// <summary>
+    /// Количество пропускаемых строк по умолчанию
+    /// </summary>
+    private readonly int defaultSkipedLinesCount = 0;
+    /// <summary>
+    /// Знак пустого значения по умолчанию
+    /// </summary>
+    private readonly char defaultCharNull = '?';
+
 
     internal ImportText(in string filePath, in char delimiter, in char nullValue, in int skippedlinesCount)
     { 
@@ -208,13 +217,13 @@ internal class ImportText
     {
         this.CheckFileExtension(filePath);
 
-        this.reader = new TextFileReader(filePath, skippedlinesCount ?? 0);
+        this.reader = new TextFileReader(filePath, skippedlinesCount ?? this.defaultSkipedLinesCount);
 
         this.ParsLine(out char delimiter, out int fieldsCount);
 
         this.dataSet = new(fieldsCount);
 
-        this.ReadFields(filePath, fieldsCount, delimiter, nullValue ?? '?');
+        this.ReadFields(filePath, fieldsCount, delimiter, nullValue ?? this.defaultCharNull);
     }
 
     /// <summary>
