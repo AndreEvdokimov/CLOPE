@@ -13,10 +13,6 @@ internal class ImportText
         /// </summary>
         readonly private FileStream fileStream;
         /// <summary>
-        /// Поток с буффером
-        /// </summary>
-        readonly private BufferedStream bufferedStream;
-        /// <summary>
         /// Поток чтения
         /// </summary>
         readonly private StreamReader reader;
@@ -41,9 +37,8 @@ internal class ImportText
             {
                 int bufferSize = DefineBufferSize(filePath);
 
-                this.fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                this.bufferedStream = new(fileStream, bufferSize);
-                this.reader = new(bufferedStream, true);
+                this.fileStream = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize);
+                this.reader = new(fileStream, true);
             }
             catch (Exception e)
             {
@@ -54,6 +49,8 @@ internal class ImportText
         /// <summary>
         /// Определяем размер буффера в зависимости от размера файла
         /// </summary>
+        /// 
+        /// \ъ
         /// <param name="path">Путь до файла</param>
         /// <returns></returns>
         private int DefineBufferSize(in string path)
@@ -127,7 +124,6 @@ internal class ImportText
             try
             {
                 this.reader.DiscardBufferedData();
-                this.bufferedStream.Flush();
                 this.fileStream.Seek(0, SeekOrigin.Begin);
             }
             catch (Exception ex)
@@ -167,7 +163,6 @@ internal class ImportText
             {
                 // Освобождаем управляемые ресурсы в правильном порядке
                 reader.Dispose();
-                bufferedStream.Dispose();
                 fileStream.Dispose();
             }
 
