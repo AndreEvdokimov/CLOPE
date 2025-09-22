@@ -22,12 +22,6 @@ internal static class Preview
             for (int j = 0; j < data.Count; j++)
             {
                 Console.Write(data[j][i] + "    "); // поля
-                //Console.Write(data[i][j]); // строки
-
-                //if (i < data.Count)
-                //{
-                //    Console.Write(',');
-                //}
             }
 
             if (printedRows != null && i == printedRows)
