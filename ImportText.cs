@@ -341,11 +341,11 @@ internal class ImportText
 
                     if (string.IsNullOrWhiteSpace(lineItems[i]) || (lineItems[i] == nullValue.ToString()))
                     {
-                        this.dataSet[i].AddValue("NULL");
+                        this.dataSet[i].Data.Add("NULL");
                     }
                     else
                     {
-                        this.dataSet[i].AddValue(lineItems[i].Trim());
+                        this.dataSet[i].Data.Add(lineItems[i].Trim());
                     }
                 }
 
@@ -355,7 +355,7 @@ internal class ImportText
                     // то вместо нехватающих символом добавим NULL - пустое значение
                     for (int i = lineItems.Length; i < fieldsCount; i++)
                     {
-                        this.dataSet[i].AddValue("NULL");
+                        this.dataSet[i].Data.Add("NULL");
                     }
                 }
             }
