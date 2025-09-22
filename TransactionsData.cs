@@ -86,16 +86,13 @@ internal class Transactions
             {
                 if (j != colIndicesId && data[j][i] != "NULL") // Пропускаем пустые значения и столбец с индексами транзакций
                 {
-                   if (uniqValues.TryGetValue(data[j][i], out int uniqIndex))
-                    {
-                        this.transactions[transactionId].Items.Add(uniqIndex);
-                    }
-                    else
+                    if (!uniqValues.TryGetValue(data[j][i], out int uniqIndex))
                     {
                         uniqValues.Add(data[j][i], index);
-                        this.transactions[transactionId].Items.Add(index);
                         index++;
                     }
+                    
+                    this.transactions[transactionId].Items.Add(uniqIndex);
                 }
             }
         }
