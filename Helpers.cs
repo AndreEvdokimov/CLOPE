@@ -98,5 +98,45 @@ internal class Helpers
 
         return path;
     }
+    
+    /// <summary>
+    /// Добавляет в набор данных поле с индесами строк
+    /// </summary>
+    /// <param name="dataSet">Данные</param>
+    internal static void AddColumnIds(DataSet dataSet)
+    {
+        dataSet.AddColumn("ID");
+
+        for (int i = 0; i < dataSet[0].Count; i++)
+        {
+            dataSet[^1].Data.Add(i.ToString());
+        }
+    }
+
+    /// <summary>
+    /// Выводит в консоль транзакции. По умолчанию выводит 50 транзакций
+    /// </summary>
+    /// <param name="transactions">Транзакции</param>
+    internal static void F(Transactions transactions, int count = 50)
+    {
+        int j = 0;
+        
+        foreach (var transaction in transactions.GetTransaction())
+        {
+            j++;
+
+            Console.Write(transaction.Id + " : ");
+
+            for (int i = 0; i < transaction.Count; i++)
+            {
+
+                Console.Write(transaction[i].ToString() + ", ");
+            }
+
+            Console.WriteLine();
+
+            if (j == count) { break; }
+        }
+    }
 
 }
