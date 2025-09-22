@@ -1,4 +1,6 @@
-﻿/// <summary>
+﻿using System.Diagnostics;
+
+/// <summary>
 /// Транзакция
 /// </summary>
 interface ITransaction
@@ -6,7 +8,7 @@ interface ITransaction
     /// <summary>
     /// Индекс
     /// </summary>
-    object Id { get; }
+    string Id { get; }
     /// <summary>
     /// Элементы
     /// </summary>
@@ -26,19 +28,19 @@ interface ITransaction
 /// <summary>
 /// Набор транзакций
 /// </summary>
-internal class TransactionData
+internal class Transactions
 {
     /// <summary>
     /// Транзакция
     /// </summary>
     internal class Transaction : ITransaction
     {
-        public object Id { get; }
+        public string Id { get; }
         public List<int> Items { get; private set; }
         public int this[int index] => Items[index];
         public int Count => Items.Count;
 
-        internal Transaction(object Id, List<int>? data)
+        internal Transaction(string Id, List<int>? data = null)
         {
             this.Id = Id;
             this.Items = data ?? new();
@@ -46,66 +48,56 @@ internal class TransactionData
     }
 
     /// <summary>
-    /// Индексы транзакций
+    /// Транзакции
     /// </summary>
-    private List<object> indices;
-    /// <summary>
-    /// Элементы транзакций
-    /// </summary>
-    private List<int> items;
+    Dictionary<string, Transaction> transactions;
 
-    internal TransactionData(in DataSet data, in int colIndicesId, in int colItemsId)
+    internal Transactions(in DataSet data, in int colIndicesId)
     {
-        this.indices = new List<object>(data[colIndicesId].Count);
-        this.items = new List<int>(data[colItemsId].Count);
-        DataSet sortedData = Sorting.SortASC(data, colIndicesId); // При необходимости выполним сортировку по возрастанию по колонке с ID транзакций
+        this.transactions = new();
 
-        this.NormolizeData(sortedData, colIndicesId, colItemsId);
+        this.NormolizeData(data, colIndicesId);
     }
 
     /// <summary>
-    /// Возвращает нормализованные данные: итоговые данные содержат индексы, которые соответствуют своим уникальным значениям входных данных
+    /// Нормализует данные: уникальные значения таблицы заменяются на соответствующие индексы
     /// </summary>
     /// <param name="data">Данные</param>
     /// <param name="colIndicesId">Индекс поля, содержащего индексы транзакций</param>
-    /// <param name="colItemsId">Индекс поля, содержащего элементы транзакций</param>
-    private void NormolizeData(DataSet data, in int colIndicesId, in int colItemsId)
+    private void NormolizeData(DataSet data, in int colIndicesId)
     {
-        Dictionary<object, int> uniqIndices = new Dictionary<object, int>(); // записи <уникальное значение транзакции: уникальный индекс>
-        IColumn indexColumn = data[colIndicesId]; // поле с идексами транзакций
-        IColumn itemColumn = data[colItemsId];
+        Debug.Assert(data.Count != 0);
+        Debug.Assert(data[0].Count != 0);
+
+        Dictionary<object, int> uniqValues = new(); // записи <уникальное значение транзакции: уникальный индекс>
 
         int index = 0; // Уникальный индекс элемента транзации
-        int offset = 0; // Смещение
 
-        while (offset < indexColumn.Count)
+        for (int i = 0; i < data[0].Count; i++) // Строки
         {
-            int stringId = 0; // номер строки транзакции
-            int checkIndex = offset;
+            string transactionId = data[colIndicesId][i];
 
-            while (checkIndex < indexColumn.Count && indexColumn[checkIndex].Equals(indexColumn[offset]))
+            if (!transactions.ContainsKey(transactionId))
             {
-                if (!itemColumn[checkIndex].Equals("NULL")) // пропускаем пустые значения
-                {
-                    this.indices.Add(indexColumn[checkIndex]);
+                transactions.Add(transactionId, new Transaction(transactionId));
+            }
 
-                    if (uniqIndices.TryGetValue(itemColumn[checkIndex], out int uniqIndex))
+            for (int j = 0; j < data.Count; j++) // Поля
+            {
+                if (j != colIndicesId && data[j][i] != "NULL") // Пропускаем пустые значения и столбец с индексами транзакций
+                {
+                   if (uniqValues.TryGetValue(data[j][i], out int uniqIndex))
                     {
-                        this.items.Add(uniqIndex);
+                        this.transactions[transactionId].Items.Add(uniqIndex);
                     }
                     else
                     {
-                        uniqIndices.Add(itemColumn[checkIndex], index);
-                        this.items.Add(index);
+                        uniqValues.Add(data[j][i], index);
+                        this.transactions[transactionId].Items.Add(index);
                         index++;
                     }
                 }
-
-                stringId++;
-                checkIndex++;
             }
-
-            offset += stringId; // Переходим к следующей транзакции
         }
     }
 
@@ -113,26 +105,13 @@ internal class TransactionData
     /// Последовательно возвращает транзакции
     /// </summary>
     /// <returns>Транзакция</returns>
-    internal IEnumerable<Transaction> GetTransaction() // только для отсортированных транзакций
+    internal IEnumerable<Transaction> GetTransaction()
     {
-        if (this.items.Count == 0) { yield break; }
+        if (this.transactions.Count == 0) { yield break; }
 
-        int offset = 0; // Смещение
-
-        while (offset < this.indices.Count)
+        foreach (var transaction in this.transactions.Values)
         {
-            int itemsCount = 0; // Количество элементов текущей транзакции
-            int checkIndex = offset; // Индекс текущей транзации
-
-            while (checkIndex < this.indices.Count && 
-                this.indices[checkIndex].Equals(this.indices[offset]))
-            {
-                itemsCount++;
-                checkIndex++;
-            }
-
-            yield return new Transaction(this.indices[offset], this.items.GetRange(offset, itemsCount)); // Возвращаем элементы транзакции
-            offset += itemsCount; // Переход к следующей транзакции
-        }
+            yield return transaction; // Возвращаем элементы транзакции
+        }        
     }
 }
