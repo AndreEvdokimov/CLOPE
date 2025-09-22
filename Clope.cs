@@ -115,7 +115,7 @@ internal class Clope
         /// <summary>
         /// Словарь [id транзакции : id кластера]
         /// </summary>
-        private Dictionary<object, int> clustersMap;
+        private Dictionary<string, int> clustersMap;
         /// <summary>
         /// Список кластеров
         /// </summary>
@@ -123,9 +123,9 @@ internal class Clope
         /// <summary>
         /// Словарь [id транзакции : id кластера]
         /// </summary>
-        internal Dictionary<object, int> ClustersMap => this.clustersMap;
+        internal Dictionary<string, int> ClustersMap => this.clustersMap;
 
-        internal ClopeEngine(in double repulsion, in TransactionData transactions)
+        internal ClopeEngine(in double repulsion, in Transactions transactions)
         {
             if (repulsion < 1.00)
             {
@@ -134,7 +134,7 @@ internal class Clope
 
             this.repulsion = repulsion;
             this.clusters = new List<Cluster>() { new Cluster() };
-            this.clustersMap = new Dictionary<object, int>();
+            this.clustersMap = new Dictionary<string, int>();
 
             this.Run(transactions);
         }
@@ -160,7 +160,7 @@ internal class Clope
                 }
             }
 
-            if (cluster.N == 0)
+            if (cluster.N == 0) // Если в кластере не останется элементов
             {
                 result = newS / Math.Pow(newW, this.repulsion);
             }
@@ -198,8 +198,7 @@ internal class Clope
                 }
             }
 
-            // Если в кластере не останется элементов
-            if (newW == 0)
+            if (newW == 0) // Если в кластере не останется элементов
             {
                 result = 0.0;
             }
@@ -220,7 +219,7 @@ internal class Clope
         /// Выполнение алгоритма
         /// </summary>
         /// <param name="transactions">Транзакция</param>
-        private void Run(in TransactionData transactions)
+        private void Run(in Transactions transactions)
         {
             foreach (ITransaction transaction in transactions.GetTransaction()) // init
             {
@@ -305,7 +304,7 @@ internal class Clope
     /// </summary>
     internal DataSet ClusterCharacteristicsTable { get; }
 
-    internal Clope(in double repulsion, in TransactionData transactions)
+    internal Clope(in double repulsion, in Transactions transactions)
     {
         ClopeEngine engine = new(repulsion, transactions);
 
@@ -321,11 +320,6 @@ internal class Clope
     /// </summary>
     private void PrepareClusterCharacteristicsTable(List<ClopeEngine.Cluster> clusters)
     {
-        //int clusterCount = 0;
-        //int n = 0;
-        //int w = 0;
-        //int s = 0;
-
         this.ClusterCharacteristicsTable.AddColumn("Номер кластера");
         this.ClusterCharacteristicsTable.AddColumn("N");
         this.ClusterCharacteristicsTable.AddColumn("W");
@@ -333,34 +327,26 @@ internal class Clope
 
         for (int i = 0; i < clusters.Count; i++)
         {
-
-            //clusterCount++;
-            //n += this.clusters[i].N;
-            //w += this.clusters[i].W;
-            //s += this.clusters[i].S;
-
-            this.ClusterCharacteristicsTable[0].AddValue(i);
-            this.ClusterCharacteristicsTable[1].AddValue(clusters[i].N);
-            this.ClusterCharacteristicsTable[2].AddValue(clusters[i].W);
-            this.ClusterCharacteristicsTable[3].AddValue(clusters[i].S);
-
-            //string str = $"Кластер № {i + 1}; N: {this.clusters[i].N}; W: {this.clusters[i].W}; S: {this.clusters[i].S}";
-            //Console.WriteLine(str); // для отладки
+            this.ClusterCharacteristicsTable[0].Data.Add(i.ToString());
+            this.ClusterCharacteristicsTable[1].Data.Add(clusters[i].N.ToString());
+            this.ClusterCharacteristicsTable[2].Data.Add(clusters[i].W.ToString());
+            this.ClusterCharacteristicsTable[3].Data.Add(clusters[i].S.ToString());
         }
-
-        //Console.WriteLine($"Всего Кластеров: {clusterCount}; N: {n}; W: {w}; S {s}"); // для отладки
     }
 
     /// <summary>
     /// Подготавливает таблице с результатами
     /// </summary>
-    private void PrepareOutputTable(Dictionary<object, int> clustersMap)
+    private void PrepareOutputTable(Dictionary<string, int> clustersMap)
     {
         this.OutputTable.AddColumn("Номер транзакции");
         this.OutputTable.AddColumn("Кластер");
 
-        this.OutputTable[0].Data = [.. clustersMap.Keys];
-        this.OutputTable[1].Data = [.. clustersMap.Values];
+        foreach (var p in clustersMap) 
+        {
+            this.OutputTable[0].Data.Add(p.Key);
+            this.OutputTable[1].Data.Add(p.Value.ToString());
+        }
     }
 
 }
