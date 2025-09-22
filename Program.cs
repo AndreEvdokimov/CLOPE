@@ -30,7 +30,7 @@ internal class Program
 
         Clope clope = new(repulsion, transactions); // Запускаем Clope
 
-        //Preview.PrintTable(clope.OutputTable);
-        Preview.PrintTable(clope.ClusterCharacteristicsTable);
+        //Helpers.PrintTable(clope.OutputTable);
+        Helpers.PrintTable(clope.ClusterCharacteristicsTable);
     }
 }
