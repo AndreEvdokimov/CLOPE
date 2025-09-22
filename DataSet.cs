@@ -7,33 +7,20 @@ internal interface IColumn
     /// Название поля
     /// </summary>
     string Name { get; }
-
     /// <summary>
     /// Элемент списка данных
     /// </summary>
     /// <param name="index">Индекс элемента</param>
     /// <returns></returns>
-    object this[int index] { get; }
+    string this[int index] { get; }
     /// <summary>
     /// Список данных
     /// </summary>
-    List<object> Data { get; set; }
+    List<string> Data { get; }
     /// <summary>
     /// Количестов элементов
     /// </summary>
     int Count => Data.Count;
-    /// <summary>
-    /// Добавляет значение в поле
-    /// </summary>
-    /// <param name="value"></param>
-    void AddValue(object value);
-    /// <summary>
-    /// Возвращает диапазон значения
-    /// </summary>
-    /// <param name="index"></param>
-    /// <param name="count"></param>
-    /// <returns></returns>
-    List<object> GetRange(int index, int count);
 }
 
 /// <summary>
@@ -48,35 +35,14 @@ internal class DataSet
     protected class Column : IColumn
     {
         public string Name { get; private set; }
-        public List<object> Data { get; set; }
+        public List<string> Data { get; }
         public int Count => this.Data.Count;
         internal Column(string name)
         {
             this.Name = name;
-            this.Data = new List<object>();
+            this.Data = new List<string>();
         }
-        public object this[int index] => this.Data[index];
-
-        public void AddValue(object value)
-        {
-            //Type type = value.GetType();
-
-            //if (value is string || value is int || value is char)
-            //{
-            //    this.Data.Add(value);
-            //}
-            //else
-            //{
-            //    throw new Exception($"Тип '{type}' значения '{value}' не соответствует допустимым типам: string, int и char");
-            //}
-
-            this.Data.Add(value);
-        }
-
-        public List<object> GetRange(int index, int count)
-        {
-            return this.Data.GetRange(index, count);
-        }
+        public string this[int index] => this.Data[index];
     }
 
     /// <summary>
@@ -99,15 +65,7 @@ internal class DataSet
     /// <param name="index">Индекс</param>
     /// <returns></returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    internal IColumn this[int index]
-    {
-        get
-        {
-            if (index < 0 || index >= this.Columns.Count) { throw new ArgumentOutOfRangeException(nameof(index)); }
-
-            return this.Columns[index];
-        }
-    }
+    internal IColumn this[int index] => this.Columns[index];
 
     /// <summary>
     /// Добавляет поле в набор
