@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using CLOPE.Transactions;
+﻿using CLOPE.Transactions;
 using CLOPE.Clusters;
 
 namespace CLOPE.Core;

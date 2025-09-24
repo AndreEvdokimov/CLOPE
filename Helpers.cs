@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text;
+﻿using System.Text;
 using CLOPE.Transactions;
 
 namespace CLOPE.Helpers;
@@ -8,23 +7,6 @@ namespace CLOPE.Helpers;
 /// </summary>
 internal class Helpers
 {
-    /// <summary>
-    /// Выводит в консоль таблицк уникальных значений
-    /// </summary>
-    /// <param name="uniqValues"></param>
-    internal static void PrintColumnsUniqValues(in List<Dictionary<string, int>> uniqValues)
-    {
-        for (int i = 0; i < uniqValues.Count; i++)
-        {
-            Console.WriteLine($"filed: {i}");
-
-            for (int j = 0; j < uniqValues[i].Count; j++)
-            {
-                Console.WriteLine($"key: {uniqValues[i].ElementAt(j).Key}, value: {uniqValues[i].ElementAt(j).Value}");
-            }
-        }
-    }
-
     /// <summary>
     ///  Записывает построчно таблицу в файл
     /// </summary>
@@ -41,39 +23,6 @@ internal class Helpers
             for (int i = 0; i < data.Count; i++)
             {
                 r.WriteLine(data[i].ToString());
-            }
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Во время записи файла возникла ошибка. {e.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Записывает в текстовый файл таблицу
-    /// </summary>
-    /// <param name="path"></param>
-    /// <param name="data"></param>
-    /// <param name="encoding"></param>
-    /// <exception cref="Exception"></exception>
-    internal static void ExportTxt(in string path, in List<List<int>> data, Encoding encoding)
-    {
-        if (!File.Exists(path))
-        {
-            File.Create(path);
-        }
-
-        try
-        {
-            StreamWriter r = new(path, false, encoding);
-
-            for (int i = 0; i < data.Count; i++)
-            {
-                for (int j = 0; j < data[i].Count; j++)
-                {
-                    r.Write(data[i][j] + ", ");
-                }
-                r.WriteLine();
             }
         }
         catch (Exception e)

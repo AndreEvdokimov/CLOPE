@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace CLOPE.Import;
+﻿namespace CLOPE.Import;
 
 /// <summary>
 /// Импорт текстового файла

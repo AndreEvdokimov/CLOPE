@@ -1,8 +1,6 @@
 ﻿using CLOPE.Import;
-using System;
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Transactions;
 
 namespace CLOPE.Transactions;
 
@@ -97,18 +95,24 @@ internal class TransactionSet
     }
 
     /// <summary>
-    /// Последовательно возвращает транзакции
+    /// Выводит в консоль транзакции. По умолчанию выводит 50 транзакций
     /// </summary>
-    /// <returns>Транзакция</returns>
-    //internal IEnumerable<Transaction> GetTransaction()
-    //{
-    //    if (this.transactions.Count == 0) { yield break; }
+    /// <param name="transactions">Транзакции</param>
+    internal void PrintTransactions()
+    {
+        if (this.transactions.Count == 0)
+        {
+            Console.WriteLine("Набор транзакций пуст");
+            return;
+        }
 
-    //    foreach (var transaction in this.transactions.Values)
-    //    {
-    //        yield return transaction; // Возвращаем элементы транзакции
-    //    }
-    //}
+        Console.WriteLine(String.Format("|{0,13}|{1,13}", "ID Транзакции", "ID кластера" ));
+
+        foreach (var transaction in this.transactions.Values)
+        {
+            Console.WriteLine(String.Format("|{0,5}|{1,5}", transaction.Id, transaction.ClusterId));
+        }
+    }
 
     public IEnumerator<Transaction> GetEnumerator() => this.transactions.Values.GetEnumerator();
 }
