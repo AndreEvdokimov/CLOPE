@@ -82,6 +82,11 @@ internal static class ClopeEngine
                     transaction.ClusterId = maxProfitClusterId;
                     moved = true;
                 }
+
+                if (clusters[maxProfitClusterId].N == 0)
+                {
+                    clusters.AddCluster();
+                }
             }
         } while (moved);
 
