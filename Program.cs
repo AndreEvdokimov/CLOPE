@@ -1,4 +1,10 @@
 ﻿using System;
+using CLOPE.Transactions;
+using CLOPE.Core;
+using CLOPE.Clusters;
+using CLOPE.Import;
+using CLOPE.Helpers;
+
 internal class Program
 {
     static void Main(string[] args)
@@ -8,29 +14,17 @@ internal class Program
         // Получаем путь до файла из консоли
         string filePath = Helpers.GetFilePathFromConsole();
 
-        // Загружаем данные из файла
-        ImportText importText = new ImportText(filePath);
+        TextFile textFile = new TextFile(filePath);
 
-        DataSet dataSet = importText.DataSet;
+        TransactionSetParams dataSetParams = new TransactionSetParams();
 
-        int colIndicesId = 0; // индекс поля, которое содержит индексы транзакций
+        TransactionSet transactions = new TransactionSet(textFile, dataSetParams);
 
-        if (dataSet.Count < 2)
-        {
-            throw new Exception("Данные должны содержать две и более колонки");
-        }
-        else if (dataSet.Count > 2) // если в данных по типу грибов нет поля с индексами транзакций, то добавим его
-        {
-            Helpers.AddColumnIds(dataSet);
+        ClusterSet clusters = new ClusterSet();
 
-            colIndicesId = dataSet.Count - 1;
-        }
+        ClopeEngine.Run(transactions, clusters, repulsion); // Запускаем Clope
 
-        Transactions transactions = new Transactions(dataSet, colIndicesId);
 
-        Clope clope = new(repulsion, transactions); // Запускаем Clope
-
-        //Helpers.PrintTable(clope.OutputTable);
-        Helpers.PrintTable(clope.ClusterCharacteristicsTable);
+        clusters.PrintClustersCharacteristicsTable();
     }
 }

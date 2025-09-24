@@ -1,12 +1,14 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using CLOPE.Transactions;
 
+namespace CLOPE.Helpers;
 /// <summary>
 /// Хелперы для дебага, проверки результатов работы других классов и т.п.
 /// </summary>
-internal class Helpers 
+internal class Helpers
 {
-     /// <summary>
+    /// <summary>
     /// Выводит в консоль таблицк уникальных значений
     /// </summary>
     /// <param name="uniqValues"></param>
@@ -98,30 +100,16 @@ internal class Helpers
 
         return path;
     }
-    
-    /// <summary>
-    /// Добавляет в набор данных поле с индесами строк
-    /// </summary>
-    /// <param name="dataSet">Данные</param>
-    internal static void AddColumnIds(DataSet dataSet)
-    {
-        dataSet.AddColumn("ID");
-
-        for (int i = 0; i < dataSet[0].Count; i++)
-        {
-            dataSet[^1].Data.Add(i.ToString());
-        }
-    }
 
     /// <summary>
     /// Выводит в консоль транзакции. По умолчанию выводит 50 транзакций
     /// </summary>
     /// <param name="transactions">Транзакции</param>
-    internal static void F(Transactions transactions, int count = 50)
+    internal static void PrintTransactions(TransactionSet transactions, int count = 50)
     {
         int j = 0;
-        
-        foreach (var transaction in transactions.GetTransaction())
+
+        foreach (var transaction in transactions)
         {
             j++;
 
@@ -138,35 +126,4 @@ internal class Helpers
             if (j == count) { break; }
         }
     }
-
-    /// <summary>
-    /// Выводит таблицу в консоль
-    /// </summary>
-    /// <param name="data"></param>
-    /// <param name="printedRows"></param>
-    internal static void PrintTable(in DataSet data, in int? printedRows = null)
-    {
-        for (int i = 0; i < data.Count; i++)
-        {
-            Console.Write(data[i].Name + "    ");
-        }
-
-        for (int i = 0; i < data[0].Count; i++)
-        {
-            Console.WriteLine();
-
-            for (int j = 0; j < data.Count; j++)
-            {
-                Console.Write(data[j][i] + "    "); // поля
-            }
-
-            if (printedRows != null && i == printedRows)
-            {
-                return;
-            }
-        }
-
-        Console.WriteLine();
-    }
-
 }
