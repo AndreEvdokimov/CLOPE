@@ -10,7 +10,7 @@ internal class TextFile
     /// </summary>
     readonly private string filePath;
     /// <summary>
-    /// 
+    /// Набор строк
     /// </summary>
     readonly private List<string> DataSet;
 
@@ -52,7 +52,7 @@ internal class TextFile
     }
 
     /// <summary>
-    /// Читает строки текстовго файла и записывает из в список
+    /// Читает строки текстовго файла и записывает их в список
     /// </summary>
     private void ReadRows()
     {
@@ -70,7 +70,7 @@ internal class TextFile
     }
 
     /// <summary>
-    /// Возвращает строку текстовго файла
+    /// Возвращает строки текстовго файла
     /// </summary>
     /// <returns></returns>
     internal IEnumerable<string> GetRow()

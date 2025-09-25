@@ -17,22 +17,27 @@ internal class ClusterSet
     /// Счетчик кластеров
     /// </summary>
     private int clustersCount;
-
+    /// <summary>
+    /// Индексатор
+    /// </summary>
+    /// <param name="index">Индекс</param>
+    /// <returns>Кластер</returns>
     internal Cluster this[int index] => this.ClusterList[index];
 
     internal ClusterSet()
     {
-        this.ClusterList = new List<Cluster>() { };
         this.clustersCount = 0;
+        this.ClusterList = new List<Cluster>() { new Cluster(0) };
     }
 
     /// <summary>
-    /// Добавляет в набор новый пустой кластер
+    /// Добавляет в набор новый пустой кластер и возвращает его id
     /// </summary>
-    internal void AddCluster()
+    internal int AddCluster()
     {
-        this.ClusterList.Add(new Cluster(clustersCount));
         clustersCount++;
+        this.ClusterList.Add(new Cluster(clustersCount));
+        return clustersCount;
     }
 
     internal void DeleteEmptyClusters()
@@ -57,13 +62,13 @@ internal class ClusterSet
             return;
         }
 
-        Console.WriteLine(String.Format("|{0,7}|{1,5}|{2,5}|{3,5}|", "Кластер", "N", "W", "S"));
+        Console.WriteLine(String.Format("|{0,10}|{1,10}|{2,10}|{3,10}|", "Кластер", "N", "W", "S"));
 
         Console.WriteLine();
 
         for (int i = 0; i < this.ClusterList.Count; i++)
         {
-            Console.WriteLine(String.Format("|{0,7}|{1,5}|{2,5}|{3,5}|", i, this.ClusterList[i].N, this.ClusterList[i].W, this.ClusterList[i].S));
+            Console.WriteLine(String.Format("|{0,10}|{1,10}|{2,10}|{3,10}|", i, this.ClusterList[i].N, this.ClusterList[i].W, this.ClusterList[i].S));
         }
 
         Console.WriteLine();

@@ -1,6 +1,4 @@
 ﻿using CLOPE.Import;
-using System.Runtime.CompilerServices;
-using System.Transactions;
 
 namespace CLOPE.Transactions;
 
@@ -21,10 +19,6 @@ internal class TransactionSetParams
     /// Индекс поля, содержащего индексы транзакций
     /// </summary>
     internal int ColIds { get; init; } = 0;
-    /// <summary>
-    /// Количество пропускаемых строк (на случай, если набор данных содержит заголовки и т.п.)
-    /// </summary>
-    internal int SkippedLinesCount { get; init; } = 0;
 }
 
 /// <summary>
@@ -36,6 +30,10 @@ internal class TransactionSet
     /// Транзакции: <id, транзакция>
     /// </summary>
     readonly private Dictionary<string, Transaction> transactions;
+    /// <summary>
+    /// Количество транзакций в наборе
+    /// </summary>
+    internal int Count => transactions.Count;
 
     internal TransactionSet(TextFile textFile, TransactionSetParams dataSetParams)
     {
@@ -49,26 +47,26 @@ internal class TransactionSet
     /// Метод работает в том числе с неотсортированными по индексу транзакциями и обычной таблицей.
     /// Для корректной работы набор транзакций должен содержать индексы транзакций в отдельном поле.
     /// </summary>
-    /// <param name="reader">Читатель текстовых файлов</param>
+    /// <param name="textFile">Набор данных текстового файла</param>
     /// <param name="transactionSetParams">Параметры набора транзакций</param>
     private void LoadTransactions(TextFile textFile, TransactionSetParams transactionSetParams)
     {
         Dictionary<object, int> uniqValues = new(); // записи <уникальное значение транзакции: уникальный индекс>
 
         int uniqIndex = 0; // Уникальный индекс элемента транзации
-        int lineId = 0; // Счетчик строк
 
         foreach (var transaction in textFile.GetRow())
         {
-            var items = transaction.Split(transactionSetParams.Delimiter); // Разбиваем строку по указанному разделителю
+            var items = transaction.Split(transactionSetParams.Delimiter); // Разбиваем строку по указанному разделителю - получаем транзакцию
 
-            string transactionId = items[transactionSetParams.ColIds];
+            //Console.WriteLine(items.Length);
 
-            if (lineId < transactionSetParams.SkippedLinesCount && transactionSetParams.SkippedLinesCount != 0) // Пропускаем заданное количестов строк
+            if (items.Length == 1) // Пропустим массив, состоящего из одного элемента, т.к. у транзакции должен быть индекс и минимум один элемент
             {
-                lineId++;
                 continue;
             }
+
+            string transactionId = items[transactionSetParams.ColIds];
 
             if (!this.transactions.ContainsKey(transactionId)) // Добавляем транзакцию по id транзакции для загрузки данных
             {
@@ -106,12 +104,14 @@ internal class TransactionSet
             return;
         }
 
-        Console.WriteLine(String.Format("|{0,13}|{1,13}", "ID Транзакции", "ID кластера" ));
+        Console.WriteLine(String.Format("|{0,15}|{1,15}", "ID Транзакции", "ID кластера"));
 
         foreach (var transaction in this.transactions.Values)
         {
-            Console.WriteLine(String.Format("|{0,5}|{1,5}", transaction.Id, transaction.ClusterId));
+            Console.WriteLine(String.Format("|{0,15}|{1,15}", transaction.Id, transaction.ClusterId));
         }
+
+        Console.WriteLine(String.Format("|{0,15}|{1,15}", "Кол-во транзакций", transactions.Count));
     }
 
     public IEnumerator<Transaction> GetEnumerator() => this.transactions.Values.GetEnumerator();

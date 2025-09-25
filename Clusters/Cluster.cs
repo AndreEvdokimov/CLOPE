@@ -7,15 +7,15 @@ namespace CLOPE.Clusters;
 /// </summary>
 internal class Cluster
 {
-    internal int Id { get; private set; }
+    internal int Id { get; }
     /// <summary>
     /// Количество транзакций в кластере
     /// </summary>
-    internal int N { get; private set; }
+    internal int N { get; private set; } = 0;
     /// <summary>
     /// Количество элементов транзакций, которое содержит кластер (S)
     /// </summary>
-    internal int S { get; private set; }
+    internal int S { get; private set; } = 0;
     /// <summary>
     /// Количество уникальных значений кластера
     /// </summary>
@@ -32,8 +32,6 @@ internal class Cluster
     internal Cluster(int Id)
     {
         this.Id = Id;
-        this.N = 0;
-        this.S = 0;
         this.D = new Dictionary<int, int>();
     }
 
@@ -42,7 +40,7 @@ internal class Cluster
     /// </summary>
     /// <param name="item">Элемент транзакции</param>
     /// <returns>Число вхождений объекта транзакции в кластер</returns>
-    internal int Occ(int item)
+    private int Occ(int item)
     {
         return this.D.GetValueOrDefault(item, 0);
     }
@@ -126,46 +124,6 @@ internal class Cluster
         Debug.Assert(!double.IsNaN(result));
         Debug.Assert(!double.IsInfinity(result));
 
-        // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
-        // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,07454...
-        return Math.Round(result, 2);
-    }
-
-    /// <summary>
-    /// Определяет стоимость удаления транзакции из кластера
-    /// </summary>
-    /// <param name="cluster">Кластер</param>
-    /// <param name="transaction">Транзакция</param>
-    /// <returns>Стоимость удаления транзакции из кластера</returns>
-    internal double DeltaRemove(in Transaction transaction, double repulsion)
-    {
-        double result;
-
-        int newS = this.S - transaction.Count;
-        int newW = this.W;
-
-        for (int i = 0; i < transaction.Count; i++)
-        {
-            if (this.Occ(transaction[i]) == 1)
-            {
-                newW--;
-            }
-        }
-
-        if (newW == 0) // Если в кластере не останется элементов
-        {
-            result = 0.0;
-        }
-        else
-        {
-            result = (newS * (this.N - 1) / Math.Pow(newW, repulsion)) - (this.S * this.N) / Math.Pow(this.W, repulsion);
-        }
-
-        Debug.Assert(!double.IsNaN(result));
-        Debug.Assert(!double.IsInfinity(result));
-
-        // Значение нужно округлить в меньшеую сторону до двух разрядов, иначе можно попасть в бесконечный цикл,
-        // в котором одна транзакция будет метаться между несколькими кластерами с ценой перемещения 0,007454...
         return Math.Round(result, 2);
     }
 }

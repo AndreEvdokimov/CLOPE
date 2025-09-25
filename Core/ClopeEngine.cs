@@ -4,7 +4,7 @@ using CLOPE.Clusters;
 namespace CLOPE.Core;
 
 /// <summary>
-/// Движок алгоритма
+/// Движок алгоритма CLOPE
 /// </summary>
 internal static class ClopeEngine
 {
@@ -14,38 +14,27 @@ internal static class ClopeEngine
     /// <param name="transactionsSet">Транзакции</param>
     internal static void Run(in TransactionSet transactionsSet, in ClusterSet clusters, in double repulsion)
     {
-        if (clusters.Count == 0) { clusters.AddCluster(); }
+        if (transactionsSet.Count == 0)
+        {
+            Console.WriteLine("Набор транзакций пуст. Проверьте параметры набора транзакций (разделитель, и т.д.). Выходим из программы...");
+            return;
+        }
+
+        if (repulsion <= 1.0)
+        {
+            Console.WriteLine($"Значение репульсии должно быть больше 1. Передано значение ${repulsion}");
+            return;
+        }
 
         IEnumerator<Transaction> transactions = transactionsSet.GetEnumerator();
 
         while (transactions.MoveNext()) // init
         {
             Transaction transaction = transactions.Current;
-            int maxProfitClusterId = -1;
-            double maxCostAdd = 0.00;
 
-            foreach (Cluster cluster in clusters)
-            {
-                double costAdd = cluster.DeltaAdd(transaction, repulsion);
+            int maxProfitClusterId = FindBestCluster(transaction, clusters, repulsion);
 
-                if (costAdd > maxCostAdd)
-                {
-                    maxCostAdd = costAdd;
-                    maxProfitClusterId = cluster.Id;
-                }
-            }
-
-            if (maxProfitClusterId == -1) // значит для текущей транзакции не нашли кластер, который бы увеличивал Profit
-            {
-                continue;
-            }
-
-            if (clusters[maxProfitClusterId].N == 0)
-            {
-                clusters.AddCluster();
-            }
-
-            clusters[maxProfitClusterId].AddTransaction(transactions.Current);
+            clusters[maxProfitClusterId].AddTransaction(transaction);
             transaction.ClusterId = maxProfitClusterId;
         }
 
@@ -60,20 +49,8 @@ internal static class ClopeEngine
             while (transactions.MoveNext())
             {
                 Transaction transaction = transactions.Current;
-                int maxProfitClusterId = transaction.ClusterId;
-                double removeCost = clusters[maxProfitClusterId].DeltaRemove(transaction, repulsion);
-                double maxMoveCost = 0.00;
 
-                foreach (Cluster cluster in clusters)
-                {
-                    double costAdd = cluster.DeltaAdd(transaction, repulsion) + removeCost;
-
-                    if (costAdd > maxMoveCost)
-                    {
-                        maxMoveCost = costAdd;
-                        maxProfitClusterId = cluster.Id;
-                    }
-                }
+                int maxProfitClusterId = FindBestCluster(transaction, clusters, repulsion);
 
                 if (transaction.ClusterId != maxProfitClusterId)
                 {
@@ -82,14 +59,43 @@ internal static class ClopeEngine
                     transaction.ClusterId = maxProfitClusterId;
                     moved = true;
                 }
-
-                if (clusters[maxProfitClusterId].N == 0)
-                {
-                    clusters.AddCluster();
-                }
             }
         } while (moved);
 
         clusters.DeleteEmptyClusters(); // удалить пустые кластеры
+    }
+
+    /// <summary>
+    /// Возвращает для транзакции кластер, увеличивающий Profit.
+    /// Если кластер не был найден, то вернет "-1".
+    /// </summary>
+    /// <param name="transaction">Транзакция</param>
+    private static int FindBestCluster(Transaction transaction, ClusterSet clusters, double repulsion)
+    {   
+        double maxMoveCost = 0.00;
+        int bestClusterId = transaction.ClusterId;
+
+        foreach (Cluster cluster in clusters)
+        {
+            double costAdd = cluster.DeltaAdd(transaction, repulsion);
+
+            if (costAdd > maxMoveCost)
+            {
+                maxMoveCost = costAdd;
+                bestClusterId = cluster.Id;
+            }
+        }
+
+        if (bestClusterId == -1) // Если не нашли лучший кластер, добавим его в новый (пустой) кластер
+        {
+            bestClusterId = clusters.AddCluster();
+        }
+
+        if (clusters[bestClusterId].N == 0) // Если лучший кластер это пустой кластер, то добавим новый кластер
+        {
+            clusters.AddCluster();
+        }
+
+        return bestClusterId;
     }
 }
