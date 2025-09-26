@@ -42,11 +42,11 @@ internal class ClusterSet
 
     internal void DeleteEmptyClusters()
     {
-        for (int i = 0; i < this.ClusterList.Count; i++)
+        for (int i = this.ClusterList.Count - 1; i >= 0; i--)
         {
             if (this.ClusterList[i].N == 0)
             {
-                this.ClusterList.Remove(ClusterList[i]);
+                this.ClusterList.RemoveAt(i);
             }
         }
     }
