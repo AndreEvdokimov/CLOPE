@@ -9,20 +9,12 @@ internal class TextFile
     /// Путь к файлу
     /// </summary>
     readonly private string filePath;
-    /// <summary>
-    /// Набор строк
-    /// </summary>
-    readonly private List<string> DataSet;
 
     internal TextFile(string filePath)
     {
         this.CheckFileExtension(filePath);
 
         this.filePath = filePath;
-
-        this.DataSet = new List<string>();
-
-        this.ReadRows();
     }
 
     /// <summary>
@@ -52,24 +44,6 @@ internal class TextFile
     }
 
     /// <summary>
-    /// Читает строки текстовго файла и записывает их в список
-    /// </summary>
-    private void ReadRows()
-    {
-        try
-        {
-            foreach (string line in TextFileReader.ReadLineSync(this.filePath))
-            {
-                this.DataSet.Add(line);
-            }
-        }
-        catch (Exception e) 
-        { 
-            throw new Exception($"Во время чтения файла произошла ошибка. {e.Message}");
-        }
-    }
-
-    /// <summary>
     /// Возвращает строки текстовго файла
     /// </summary>
     /// <returns></returns>
@@ -77,7 +51,7 @@ internal class TextFile
     {
         if (DataSet.Count == 0) { yield break; }
 
-        foreach (string row in DataSet) 
+        foreach (string row in TextFileReader.ReadLineSync(this.filePath)) 
         {
             yield return row;
         }
