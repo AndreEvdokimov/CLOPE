@@ -49,8 +49,6 @@ internal class TextFile
     /// <returns></returns>
     internal IEnumerable<string> GetRow()
     {
-        if (DataSet.Count == 0) { yield break; }
-
         foreach (string row in TextFileReader.ReadLineSync(this.filePath)) 
         {
             yield return row;
