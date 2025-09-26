@@ -59,8 +59,6 @@ internal class TransactionSet
         {
             var items = transaction.Split(transactionSetParams.Delimiter); // Разбиваем строку по указанному разделителю - получаем транзакцию
 
-            //Console.WriteLine(items.Length);
-
             if (items.Length == 1) // Пропустим массив, состоящего из одного элемента, т.к. у транзакции должен быть индекс и минимум один элемент
             {
                 continue;
