@@ -14,11 +14,15 @@ internal class TransactionSetParams
     /// <summary>
     /// Пустое значение 
     /// </summary>
-    internal string NullValue { get; init; } = "?";
+    internal string[] NullValues { get; init; } = { "?" };
     /// <summary>
     /// Индекс поля, содержащего индексы транзакций
     /// </summary>
     internal int ColIds { get; init; } = 0;
+    /// <summary>
+    /// Индексы столбцов, которые нужно пропустить
+    /// </summary>
+    internal int[] SkippedCols { get; init; } = { 0 };
 }
 
 /// <summary>
@@ -34,6 +38,11 @@ internal class TransactionSet
     /// Количество транзакций в наборе
     /// </summary>
     internal int Count => transactions.Count;
+    /// Индексатор
+    /// </summary>
+    /// <param name="index">Индекс</param>
+    /// <returns>Транзакция</returns>
+    internal Transaction this[string id] => this.transactions[id];
 
     internal TransactionSet(TextFile textFile, TransactionSetParams dataSetParams)
     {
@@ -44,27 +53,26 @@ internal class TransactionSet
 
     /// <summary>
     /// Загружает транзакции
-    /// Метод работает в том числе с неотсортированными по индексу транзакциями и обычной таблицей.
-    /// Для корректной работы набор транзакций должен содержать индексы транзакций
     /// </summary>
     /// <param name="textFile">Набор данных текстового файла</param>
     /// <param name="transactionSetParams">Параметры набора транзакций</param>
     private void LoadTransactions(TextFile textFile, TransactionSetParams transactionSetParams)
     {
-        Dictionary<object, int> uniqValues = new(); // записи <уникальное значение транзакции: уникальный индекс>
+        // var uniqValues = new Dictionary<string, int>(); // записи <уникальное значение транзакции: уникальный индекс>
+        var uniqValues = new List<Dictionary<string, int>>(); // записи <уникальное значение транзакции: уникальный индекс>
 
-        int uniqIndex = 0; // Уникальный индекс элемента транзации
+        var uniqIndex = 0; // Уникальный индекс элемента транзации
 
         foreach (var transaction in textFile.GetRow())
         {
             var items = transaction.Split(transactionSetParams.Delimiter); // Разбиваем строку по указанному разделителю - получаем транзакцию
 
-            if (items.Length == 1) // Пропустим массив, состоящего из одного элемента, т.к. у транзакции должен быть индекс и минимум один элемент
+            if (items.Length == 1) // Пропустим массив, состоящего из одного элемента (который является id транзакции), т.к. у транзакции должен быть индекс и минимум один элемент
             {
                 continue;
             }
 
-            string transactionId = items[transactionSetParams.ColIds];
+            var transactionId = items[transactionSetParams.ColIds];
 
             if (!this.transactions.ContainsKey(transactionId)) // Добавляем транзакцию по id транзакции для загрузки данных
             {
@@ -73,43 +81,23 @@ internal class TransactionSet
 
             for (int i = 0; i < items.Length; i++)
             {
-                if (i != transactionSetParams.ColIds && items[i] != transactionSetParams.NullValue) // Пропускаем пустые значения и столбец с индексами транзакций
+                if (uniqValues.Count <= i) { uniqValues.Add(new Dictionary<string, int>()); }
+
+                if (!transactionSetParams.SkippedCols.Contains(i) && !transactionSetParams.NullValues.Contains(items[i])) // Пропускаем пустые значения и столбец с индексами транзакций
                 {
-                    if (uniqValues.TryGetValue(items[i], out int index))
+                    if (uniqValues[i].TryGetValue(items[i], out int index))
                     {
                         this.transactions[transactionId].Add(index);
                     }
                     else
                     {
                         this.transactions[transactionId].Add(uniqIndex);
-                        uniqValues.Add(items[i], uniqIndex);
+                        uniqValues[i].Add(items[i], uniqIndex);
                         uniqIndex++;
                     }
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Выводит в консоль транзакции. По умолчанию выводит 50 транзакций
-    /// </summary>
-    /// <param name="transactions">Транзакции</param>
-    internal void PrintTransactions()
-    {
-        if (this.transactions.Count == 0)
-        {
-            Console.WriteLine("Набор транзакций пуст");
-            return;
-        }
-
-        Console.WriteLine(String.Format("|{0,15}|{1,15}", "ID Транзакции", "ID кластера"));
-
-        foreach (var transaction in this.transactions.Values)
-        {
-            Console.WriteLine(String.Format("|{0,15}|{1,15}", transaction.Id, transaction.ClusterId));
-        }
-
-        Console.WriteLine(String.Format("|{0,15}|{1,15}", "Кол-во транзакций", transactions.Count));
     }
 
     public IEnumerator<Transaction> GetEnumerator() => this.transactions.Values.GetEnumerator();

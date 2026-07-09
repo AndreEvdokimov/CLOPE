@@ -8,71 +8,46 @@ internal class ClusterSet
     /// <summary>
     /// Список кластеров
     /// </summary>
-    private List<Cluster> ClusterList { get; set; }
+    private Dictionary<int, Cluster> Items;
     /// <summary>
     /// Количество кластеров в наборе
     /// </summary>
-    internal int Count => this.ClusterList.Count;
+    internal int Count => this.Items.Count;
     /// <summary>
     /// Счетчик кластеров
     /// </summary>
     private int clustersCount;
-    /// <summary>
-    /// Индексатор
-    /// </summary>
-    /// <param name="index">Индекс</param>
-    /// <returns>Кластер</returns>
-    internal Cluster this[int index] => this.ClusterList[index];
 
     internal ClusterSet()
     {
         this.clustersCount = 0;
-        this.ClusterList = new List<Cluster>() { new Cluster(0) };
+        this.Items = new Dictionary<int, Cluster>() { [0] = new Cluster(0) };
+    }
+
+    internal bool TryGet(int index, out Cluster cluster)
+    {
+        return this.Items.TryGetValue(index, out cluster!);
     }
 
     /// <summary>
-    /// Добавляет в набор новый пустой кластер и возвращает его id
+    /// Добавляет в набор новый пустой кластер
     /// </summary>
-    internal int AddCluster()
+    internal void AddCluster()
     {
         clustersCount++;
-        this.ClusterList.Add(new Cluster(clustersCount));
-        return clustersCount;
-    }
-
-    internal void DeleteEmptyClusters()
-    {
-        for (int i = this.ClusterList.Count - 1; i >= 0; i--)
-        {
-            if (this.ClusterList[i].N == 0)
-            {
-                this.ClusterList.RemoveAt(i);
-            }
-        }
+        this.Items.Add(clustersCount, new Cluster(clustersCount));
     }
 
     /// <summary>
-    /// Выводит в консоль характеристики кластеров
+    /// Удаляет пустые кластеры из набора
     /// </summary>
-    internal void PrintClustersCharacteristicsTable()
+    internal void DeleteEmptyClusters()
     {
-        if (this.Count == 0)
+        foreach (int id in this.Items.Keys.ToList())
         {
-            Console.WriteLine("Набор кластеров пуст");
-            return;
+            if (this.Items[id].N == 0) { this.Items.Remove(id); }
         }
-
-        Console.WriteLine(String.Format("|{0,10}|{1,10}|{2,10}|{3,10}|", "Кластер", "N", "W", "S"));
-
-        Console.WriteLine();
-
-        for (int i = 0; i < this.ClusterList.Count; i++)
-        {
-            Console.WriteLine(String.Format("|{0,10}|{1,10}|{2,10}|{3,10}|", i, this.ClusterList[i].N, this.ClusterList[i].W, this.ClusterList[i].S));
-        }
-
-        Console.WriteLine();
     }
 
-    public IEnumerator<Cluster> GetEnumerator() => this.ClusterList.GetEnumerator();
+    public IEnumerator<Cluster> GetEnumerator() => this.Items.Values.GetEnumerator();
 }

@@ -1,101 +1,222 @@
 ﻿using CLOPE.Transactions;
 using CLOPE.Clusters;
+using System.Diagnostics;
 
 namespace CLOPE.Core;
 
 /// <summary>
 /// Движок алгоритма CLOPE
 /// </summary>
-internal static class ClopeEngine
-{
+internal class ClopeEngine
+{   
     /// <summary>
-    /// Выполнение алгоритма
+    /// Таблица с назначениями [id транзакции : id кластера]
     /// </summary>
-    /// <param name="transactionsSet">Транзакции</param>
-    internal static void Run(in TransactionSet transactionsSet, in ClusterSet clusters, in double repulsion)
+    private TransactionClusterMap Assignments = new TransactionClusterMap();
+
+    /// <summary>
+    /// Запускает алгоритм
+    /// </summary>
+    /// <param name="transactionSet">Набор транзакций</param>
+    /// <param name="clusterSet">Кластеры</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    internal TransactionClusterMap Run(in TransactionSet transactionSet, in ClusterSet clusterSet, in double repulsion)
     {
-        if (transactionsSet.Count == 0)
+        this.Assignments = new TransactionClusterMap(transactionSet.Count);
+
+        if (transactionSet.Count == 0)
         {
-            Console.WriteLine("Набор транзакций пуст. Проверьте параметры набора транзакций (разделитель, и т.д.). Выходим из программы...");
-            return;
+            throw new ArgumentException("Набор транзакций пуст. Проверьте параметры набора транзакций (разделитель, и т.д.)");
         }
 
         if (repulsion <= 1.0)
         {
-            Console.WriteLine($"Значение репульсии должно быть больше 1. Передано значение ${repulsion}");
-            return;
+            throw new ArgumentException($"Значение репульсии должно быть больше 1. Передано значение ${repulsion}");
         }
 
-        IEnumerator<Transaction> transactions = transactionsSet.GetEnumerator();
+        this.Init(transactionSet, clusterSet, repulsion);
+        this.Iter(transactionSet, clusterSet, repulsion);
 
-        while (transactions.MoveNext()) // init
+        return this.Assignments;
+    }
+
+    /// <summary>
+    /// Считает стоимость добавления транзакции
+    /// </summary>
+    /// <param name="transaction">Транзакция</param>
+    /// <param name="clusters">Кластер</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    private double DeltaAdd(in Transaction transaction, Cluster cluster, double repulsion)
+    {
+        double result;
+
+        int newS = cluster.S + transaction.Count;
+        int newW = cluster.W;
+
+        foreach (var item in transaction)
         {
-            Transaction transaction = transactions.Current;
-
-            int maxProfitClusterId = FindBestCluster(transaction, clusters, repulsion);
-
-            clusters[maxProfitClusterId].AddTransaction(transaction);
-            transaction.ClusterId = maxProfitClusterId;
+            if (cluster.Occ(item) == 0)
+            {
+                newW++;
+            }
         }
 
+        if (cluster.N == 0) // Если в кластере не останется элементов
+        {
+            result = newS / Math.Pow(newW, repulsion);
+        }
+        else
+        {
+            result = (newS * (cluster.N + 1) / Math.Pow(newW, repulsion)) - (cluster.S * cluster.N) / Math.Pow(cluster.W, repulsion);
+        }
+
+        Debug.Assert(!double.IsNaN(result));
+        Debug.Assert(!double.IsInfinity(result));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Считает стоимость удаления транзакции
+    /// </summary>
+    /// <param name="transaction">Транзакция</param>
+    /// <param name="cluster">Кластер</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    private double DeltaRemove(in Transaction transaction, Cluster cluster, double repulsion)
+    {
+        double result;
+
+        if (cluster.N == 0)
+        {
+            return 0;
+        }
+
+        int newS = cluster.S - transaction.Count;
+        int newN = cluster.N - 1;
+        int newW = cluster.W;
+
+        foreach (var item in transaction)
+        {
+            if (cluster.Occ(item) == 1)
+            {
+                newW--;
+            }
+        }
+
+        if (newN == 0 || newW == 0)
+        {
+            result = (cluster.S * cluster.N) / Math.Pow(cluster.W, repulsion);
+        }
+        else
+        {
+            result = ((newS * newN) / Math.Pow(newW, repulsion)) - (cluster.S * cluster.N) / Math.Pow(cluster.W, repulsion);
+        }
+
+        Debug.Assert(!double.IsNaN(result));
+        Debug.Assert(!double.IsInfinity(result));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Запускает фазу инициализации
+    /// </summary>
+    /// <param name="transactionSet">Набор транзакций</param>
+    /// <param name="clusterSet">Кластеры</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    private void Init(in TransactionSet transactionSet, in ClusterSet clusterSet, in double repulsion)
+    {
+        foreach (var transaction in transactionSet) // init
+        {
+            double maxMoveCost = 0;
+            int bestClusterId = -1;
+
+            foreach (var cluster in clusterSet)
+            {
+                double costAdd = this.DeltaAdd(transaction, cluster, repulsion);
+
+                if (costAdd > maxMoveCost)
+                {
+                    maxMoveCost = costAdd;
+                    bestClusterId = cluster.Id;
+                }
+            }
+
+            clusterSet.TryGet(bestClusterId, out Cluster bestCluster);
+
+            if (bestCluster.N == 0) // Если лучший кластер это пустой кластер, то добавим новый пустой кластер
+            {
+                clusterSet.AddCluster();
+            }
+
+            bestCluster.AddTransaction(transaction);
+
+            this.Assignments.SetValue(transaction.Id, bestClusterId);
+        }
+    }
+
+    /// <summary>
+    /// Запускает фазу итераций
+    /// </summary>
+    /// <param name="transactionSet">Набор транзакций</param>
+    /// <param name="clusterSet">Кластеры</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    private void Iter(in TransactionSet transactionSet, in ClusterSet clusterSet, in double repulsion)
+    {
         bool moved;
 
         do // iter
         {
-            transactions.Reset();
-            
             moved = false;
 
-            while (transactions.MoveNext())
+            foreach (var transaction in transactionSet)
             {
-                Transaction transaction = transactions.Current;
+                this.Assignments.TryGetClusterIdFor(transaction.Id, out int currentClusterId);
 
-                int maxProfitClusterId = FindBestCluster(transaction, clusters, repulsion);
+                Debug.Assert(currentClusterId != -1);
 
-                if (transaction.ClusterId != maxProfitClusterId)
+                clusterSet.TryGet(currentClusterId, out Cluster currentCluster);
+
+                double maxMoveCost = 0;
+                double remCost = this.DeltaRemove(transaction, currentCluster, repulsion);
+                int bestClusterId = currentClusterId;
+
+                foreach (var cluster in clusterSet)
                 {
-                    clusters[transaction.ClusterId].RemoveTransaction(transaction);
-                    clusters[maxProfitClusterId].AddTransaction(transaction);
-                    transaction.ClusterId = maxProfitClusterId;
+                    if (cluster.Id == currentClusterId)
+                    {
+                        continue;
+                    }
+
+                    double moveCost = this.DeltaAdd(transaction, cluster, repulsion) + remCost;
+
+                    if (moveCost > maxMoveCost)
+                    {
+                        maxMoveCost = moveCost;
+                        bestClusterId = cluster.Id;
+                    }
+                }
+
+                if (maxMoveCost > 0)
+                {
+                    clusterSet.TryGet(bestClusterId, out Cluster bestCluster);
+
+                    if (bestCluster.N == 0)
+                    {
+                        clusterSet.AddCluster();
+                    }
+
+                    currentCluster.RemoveTransaction(transaction);
+                    bestCluster.AddTransaction(transaction);
+
+                    this.Assignments.SetValue(transaction.Id, bestClusterId);
                     moved = true;
                 }
             }
         } while (moved);
 
-        clusters.DeleteEmptyClusters(); // удалить пустые кластеры
-    }
-
-    /// <summary>
-    /// Возвращает для транзакции кластер, увеличивающий Profit.
-    /// Если кластер не был найден, то вернет "-1".
-    /// </summary>
-    /// <param name="transaction">Транзакция</param>
-    private static int FindBestCluster(Transaction transaction, ClusterSet clusters, double repulsion)
-    {   
-        double maxMoveCost = 0.00;
-        int bestClusterId = transaction.ClusterId;
-
-        foreach (Cluster cluster in clusters)
-        {
-            double costAdd = cluster.DeltaAdd(transaction, repulsion);
-
-            if (costAdd > maxMoveCost)
-            {
-                maxMoveCost = costAdd;
-                bestClusterId = cluster.Id;
-            }
-        }
-
-        if (bestClusterId == -1) // Если не нашли лучший кластер, добавим его в новый (пустой) кластер
-        {
-            bestClusterId = clusters.AddCluster();
-        }
-
-        if (clusters[bestClusterId].N == 0) // Если лучший кластер это пустой кластер, то добавим новый кластер
-        {
-            clusters.AddCluster();
-        }
-
-        return bestClusterId;
+        clusterSet.DeleteEmptyClusters();
     }
 }

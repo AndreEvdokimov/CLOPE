@@ -8,7 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\ClopeEngine — копия.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Folder Include="DataStorage\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest.TestFramework" Version="4.3.0" />
   </ItemGroup>
 
 </Project>

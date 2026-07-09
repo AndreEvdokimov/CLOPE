@@ -19,20 +19,16 @@ internal class Cluster
     /// <summary>
     /// Количество уникальных значений кластера
     /// </summary>
-    internal int W => this.D.Count;
+    internal int W => this.ItemCounts.Count;
     /// <summary>
-    /// Словарь для подсчёта множества уникальных объектов
+    /// Словарь для подсчёта множества уникальных объектов (D)
     /// </summary>
-    private Dictionary<int, int> D { get; }
-    /// <summary>
-    /// Индексы транзакций, которые содержит кластер
-    /// </summary>
-    internal int TransactionIds { get; set; }
+    private Dictionary<int, int> ItemCounts { get; }
 
-    internal Cluster(int Id)
+    internal Cluster(int id)
     {
-        this.Id = Id;
-        this.D = new Dictionary<int, int>();
+        this.Id = id;
+        this.ItemCounts = new Dictionary<int, int>();
     }
 
     /// <summary>
@@ -40,9 +36,9 @@ internal class Cluster
     /// </summary>
     /// <param name="item">Элемент транзакции</param>
     /// <returns>Число вхождений объекта транзакции в кластер</returns>
-    private int Occ(int item)
+    internal int Occ(int item)
     {
-        return this.D.GetValueOrDefault(item, 0);
+        return this.ItemCounts.GetValueOrDefault(item, 0);
     }
 
     /// <summary>
@@ -51,16 +47,16 @@ internal class Cluster
     /// <param name="transaction">Транзакция</param>
     internal void AddTransaction(in Transaction transaction)
     {
-        for (int i = 0; i < transaction.Count; i++)
+        foreach (var item in transaction)
         {
-            if (this.D.ContainsKey(transaction[i]))
+            if (this.ItemCounts.ContainsKey(item))
             {
-                this.D[transaction[i]]++;
+                this.ItemCounts[item]++;
                 this.S++;
             }
             else
             {
-                this.D.Add(transaction[i], 1);
+                this.ItemCounts.Add(item, 1);
                 this.S++;
             }
         }
@@ -74,16 +70,18 @@ internal class Cluster
     /// <param name="transaction">Транзакция</param>
     internal void RemoveTransaction(in Transaction transaction)
     {
-        for (int i = 0; i < transaction.Count; i++)
+        foreach (var item in transaction)
         {
-            if (this.D.ContainsKey(transaction[i]))
+            if (this.ItemCounts.ContainsKey(item))
             {
-                this.D[transaction[i]]--;
+                Debug.Assert(this.ItemCounts[item] != 0);
+
+                this.ItemCounts[item]--;
                 this.S--;
 
-                if (this.D[transaction[i]] == 0)
+                if (this.ItemCounts[item] == 0)
                 {
-                    this.D.Remove(transaction[i]);
+                    this.ItemCounts.Remove(item);
                 }
             }
         }
@@ -91,39 +89,8 @@ internal class Cluster
         this.N--;
     }
 
-    /// <summary>
-    /// Определяет стоимость добавления транзакции в кластер
-    /// </summary>
-    /// <param name="cluster">Кластер</param>
-    /// <param name="transaction">Транзакция</param>
-    /// <returns>Стоимость добавления транзакции в кластер</returns>
-    internal double DeltaAdd(in Transaction transaction, double repulsion)
+    public override string ToString()
     {
-        double result;
-
-        int newS = this.S + transaction.Count;
-        int newW = this.W;
-
-        for (int i = 0; i < transaction.Count; i++)
-        {
-            if (this.Occ(transaction[i]) == 0)
-            {
-                newW++;
-            }
-        }
-
-        if (this.N == 0) // Если в кластере не останется элементов
-        {
-            result = newS / Math.Pow(newW, repulsion);
-        }
-        else
-        {
-            result = (newS * (this.N + 1) / Math.Pow(newW, repulsion)) - (this.S * this.N) / Math.Pow(this.W, repulsion);
-        }
-
-        Debug.Assert(!double.IsNaN(result));
-        Debug.Assert(!double.IsInfinity(result));
-
-        return Math.Round(result, 2);
+        return $"ID:{this.Id}; N:{this.N}; W:{this.W}; S:{this.S};";
     }
 }

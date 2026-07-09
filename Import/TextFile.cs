@@ -20,7 +20,7 @@ internal class TextFile
     /// <summary>
     /// Проверяет расширение файла и выводит в консоль сообщение, если его расширение не соответствует ожидаемому
     /// </summary>
-    /// <param name="path"></param>
+    /// <param name="path">Путь к файлу</param>
     /// <exception cref="Exception"></exception>
     private void CheckFileExtension(string path)
     {
@@ -44,7 +44,7 @@ internal class TextFile
     }
 
     /// <summary>
-    /// Возвращает строки текстовго файла
+    /// Возвращает строки текстового файла
     /// </summary>
     /// <returns></returns>
     internal IEnumerable<string> GetRow()

@@ -12,27 +12,16 @@
         /// <summary>
         /// Элементы транзакции
         /// </summary>
-        private List<int> Items { get; set; }
-        /// <summary>
-        /// Индексатор
-        /// </summary>
-        /// <param name="index"></param>
-        /// <returns>Элемент транзакции</returns>
-        internal int this[int index] => Items[index];
+        private List<int> Items { get; }
         /// <summary>
         /// Количество элементов транзакции
         /// </summary>
         internal int Count => Items.Count;
-        /// <summary>
-        /// Индекс кластера, который закреплен за транзакцией
-        /// </summary>
-        internal int ClusterId { get; set; }
 
         internal Transaction(string Id)
         {
             this.Id = Id;
             this.Items = new List<int>();
-            this.ClusterId = -1;
         }
 
         /// <summary>
@@ -43,5 +32,7 @@
         {
             this.Items.Add(item);
         }
+
+        public IEnumerator<int> GetEnumerator() => this.Items.GetEnumerator();
     }
 }
