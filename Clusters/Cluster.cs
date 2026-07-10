@@ -19,11 +19,11 @@ internal class Cluster
     /// <summary>
     /// Количество уникальных значений кластера
     /// </summary>
-    internal int W => this.ItemCounts.Count;
+    internal int W  => this.ItemCounts.Count;
     /// <summary>
     /// Словарь для подсчёта множества уникальных объектов (D)
     /// </summary>
-    private Dictionary<int, int> ItemCounts { get; }
+    internal Dictionary<int, int> ItemCounts { get; }
 
     internal Cluster(int id)
     {
@@ -87,6 +87,84 @@ internal class Cluster
         }
 
         this.N--;
+    }
+
+    /// <summary>
+    /// Считает стоимость добавления транзакции
+    /// </summary>
+    /// <param name="transaction">Транзакция</param>
+    /// <param name="clusters">Кластер</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    internal double DeltaAdd(in Transaction transaction, double repulsion)
+    {
+        double result;
+
+        int newS = this.S + transaction.Count;
+        int newW = this.W;
+
+        foreach (var item in transaction)
+        {
+            if (this.Occ(item) == 0)
+            {
+                newW++;
+            }
+        }
+
+        if (this.N == 0) // Если в кластере не останется элементов
+        {
+            result = newS / Math.Pow(newW, repulsion);
+        }
+        else
+        {
+            result = (newS * (this.N + 1) / Math.Pow(newW, repulsion)) - (this.S * this.N) / Math.Pow(this.W, repulsion);
+        }
+
+        Debug.Assert(!double.IsNaN(result));
+        Debug.Assert(!double.IsInfinity(result));
+
+        return result;
+    }
+
+    /// <summary>
+    /// Считает стоимость удаления транзакции
+    /// </summary>
+    /// <param name="transaction">Транзакция</param>
+    /// <param name="cluster">Кластер</param>
+    /// <param name="repulsion">Коэф. отталкивания</param>
+    internal double DeltaRemove(in Transaction transaction, double repulsion)
+    {
+        double result;
+
+        if (this.N == 0)
+        {
+            return 0;
+        }
+
+        int newS = this.S - transaction.Count;
+        int newN = this.N - 1;
+        int newW = this.W;
+
+        foreach (var item in transaction)
+        {
+            if (this.Occ(item) == 1)
+            {
+                newW--;
+            }
+        }
+
+        if (newN == 0 || newW == 0)
+        {
+            result = (this.S * this.N) / Math.Pow(this.W, repulsion);
+        }
+        else
+        {
+            result = ((newS * newN) / Math.Pow(newW, repulsion)) - (this.S * this.N) / Math.Pow(this.W, repulsion);
+        }
+
+        Debug.Assert(!double.IsNaN(result));
+        Debug.Assert(!double.IsInfinity(result));
+
+        return result;
     }
 
     public override string ToString()
