@@ -58,7 +58,6 @@ internal class TransactionSet
     /// <param name="transactionSetParams">Параметры набора транзакций</param>
     private void LoadTransactions(TextFile textFile, TransactionSetParams transactionSetParams)
     {
-        // var uniqValues = new Dictionary<string, int>(); // записи <уникальное значение транзакции: уникальный индекс>
         var uniqValues = new List<Dictionary<string, int>>(); // записи <уникальное значение транзакции: уникальный индекс>
 
         var uniqIndex = 0; // Уникальный индекс элемента транзации
