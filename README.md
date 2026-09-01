@@ -1,11 +1,11 @@
 # CLOPE
 
-Реализация алгоритма кластеризации CLOPE для категориальных данных на C# (.NET 8).
+Реализация алгоритма кластеризации CLOPE на C#.
 
 ## Требования
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- **Windows** или **Linux** (пути к данным через `Path.Combine`)
+- **Windows** или **Linux**
 
 ## Запуск
 
@@ -30,7 +30,7 @@ dotnet run
 
 ## Тесты
 
-`Tests/ClusterTests.cs` — MSTest, проверяют `AddTransaction`, `RemoveTransaction`, восстановление N/S/W после Remove + Add.
+`Tests/ClusterTests.cs` — unit тесты на MSTest, проверяют `AddTransaction`, `RemoveTransaction`, восстановление N/S/W после удаления и добавления транзакций.
 
 ## Структура
 
