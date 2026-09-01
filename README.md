@@ -1,21 +1,19 @@
 # CLOPE
 
-Реализация алгоритма кластеризации CLOPE для категориальных данных на C# (.NET 8).
+Реализация алгоритма кластеризации CLOPE на C#.
 
 ## Требования
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- **Windows** или **Linux** (пути к данным через `Path.Combine`)
+- **Windows** или **Linux**
 
 ## Запуск
 
 Из корня репозитория:
 
-```bash
+```
 dotnet run
 ```
-
-В Windows (PowerShell, cmd) — та же команда.
 
 По умолчанию используется датасет грибов `DataStorage/mooh_with_ids.txt` с параметром репульсии **r = 2.6**.
 
@@ -30,7 +28,7 @@ dotnet run
 
 ## Тесты
 
-`Tests/ClusterTests.cs` — MSTest, проверяют `AddTransaction`, `RemoveTransaction`, восстановление N/S/W после Remove + Add.
+`Tests/ClusterTests.cs` — unit тесты на MSTest, проверяют `AddTransaction`, `RemoveTransaction`, восстановление N/S/W после удаления и добавления транзакций.
 
 ## Структура
 
@@ -38,7 +36,7 @@ dotnet run
 |---|---|
 | `Core/` | `ClopeEngine` (Init, Iter), `TransactionClusterMap` |
 | `Clusters/` | `Cluster`, `ClusterSet` — N, S, W, Add/Remove |
-| `Transactions/` | `Transaction`, `TransactionSet` — загрузка и нормализация |
+| `Transactions/` | `Transaction`, `TransactionSet` — загрузка транзакций |
 | `Import/` | чтение текстового файла |
 | `Helpers/` | вывод в консоль, пути к данным |
 | `Tests/` | unit-тесты кластера |
