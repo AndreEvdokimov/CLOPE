@@ -36,7 +36,7 @@ dotnet run
 |---|---|
 | `Core/` | `ClopeEngine` (Init, Iter), `TransactionClusterMap` |
 | `Clusters/` | `Cluster`, `ClusterSet` — N, S, W, Add/Remove |
-| `Transactions/` | `Transaction`, `TransactionSet` — загрузка и нормализация |
+| `Transactions/` | `Transaction`, `TransactionSet` — загрузка транзакций |
 | `Import/` | чтение текстового файла |
 | `Helpers/` | вывод в консоль, пути к данным |
 | `Tests/` | unit-тесты кластера |
