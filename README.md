@@ -11,11 +11,9 @@
 
 Из корня репозитория:
 
-```bash
+```
 dotnet run
 ```
-
-В Windows (PowerShell, cmd) — та же команда.
 
 По умолчанию используется датасет грибов `DataStorage/mooh_with_ids.txt` с параметром репульсии **r = 2.6**.
 
