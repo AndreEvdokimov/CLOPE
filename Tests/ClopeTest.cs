@@ -53,6 +53,19 @@ namespace CLOPE.Tests
             var clopeRes = this.clope.Run(this.moohTrs, clusters, repulsion);
 
             Assert.That(clopeRes.RowsCount(), Is.Positive, "Количество записей в таблице должно быть больше 0");
+            Assert.That(clopeRes.RowsCount(), Is.EqualTo(this.moohTrs.Count), "Количество записей в таблице кластеров должно равняться количеству транзакций");
+            Assert.That(clusters.Count, Is.GreaterThan(0), "Количество кластеров должно быть больше нуля");
+
+            foreach (var tr in this.moohTrs) 
+            {
+                bool res = clopeRes.TryGetClusterIdFor(tr.Id, out int clusterId);
+                Assert.Multiple(new Action(() =>
+                {
+                    Assert.That(res, Is.True, $"У транзакции id {tr.Id} должен быть закрепленный кластер");
+                    Assert.That(clusterId, Is.Not.Null, $"У транзакции id {tr.Id} должен быть закрепленный кластер. Получен id кластера ${clusterId}");
+                }));
+            }
+
         }
 
         [Test]
