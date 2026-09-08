@@ -33,7 +33,7 @@ internal class ClopeEngine
 
         if (repulsion <= 1.0)
         {
-            throw new ArgumentException($"Значение репульсии должно быть больше 1. Передано значение ${repulsion}");
+            throw new ArgumentException($"Значение репульсии должно быть больше 1. Передано значение {repulsion}");
         }
 
         this.Init(transactionSet, clusterSet, repulsion);
