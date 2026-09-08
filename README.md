@@ -28,7 +28,7 @@ dotnet run
 
 ## Тесты
 
-`Tests/ClusterTests.cs` — unit тесты на MSTest, проверяют `AddTransaction`, `RemoveTransaction`, восстановление N/S/W после удаления и добавления транзакций.
+`Tests` — unit тесты на NUnit.
 
 ## Структура
 
@@ -39,7 +39,7 @@ dotnet run
 | `Transactions/` | `Transaction`, `TransactionSet` — загрузка транзакций |
 | `Import/` | чтение текстового файла |
 | `Helpers/` | вывод в консоль, пути к данным |
-| `Tests/` | unit-тесты кластера |
+| `Tests/` | unit-тесты |
 | `DataStorage/` | тестовые наборы данных |
 
 ## Ссылки
