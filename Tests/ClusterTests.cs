@@ -1,113 +1,132 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Runtime.CompilerServices;
+using CLOPE.Clusters;
+using NUnit;
+using NUnit.Framework;
 
 namespace CLOPE.Tests
 {
-    [TestClass]
+    struct ExpectedClusterStats 
+    {
+        internal int N;
+        internal int S;
+        internal int W;
+    }
+
+    [TestFixture]
     public class ClusterTests
     {
-        private List<Transactions.Transaction> trS = new() { new Transactions.Transaction("0"), new Transactions.Transaction("1"), new Transactions.Transaction("2") };
-        private List<int> tr = new List<int>()  { 45, 34, 3, 36, 5, 6, 7, 44, 38, 51, 11, 12, 59, 14, 15, 16, 17, 18, 19, 43, 52 };
-        private List<int> tr1 = new List<int>() { 45, 46, 3, 36, 5, 6, 7, 25, 38, 51, 11, 12, 13, 14, 15, 16, 17, 18, 31, 49, 52 };
-        private List<int> tr2 = new List<int>() { 27, 46, 3, 36, 5, 6, 7, 42, 38, 51, 11, 12, 59, 62, 15, 16, 17, 18, 31, 49, 52 };
+        private double repulsion26 = 2.6;
+        private List<Transactions.Transaction> trs = new() { new Transactions.Transaction("0"), new Transactions.Transaction("1"), new Transactions.Transaction("2") };
 
-        public ClusterTests()
+        [OneTimeSetUp]
+        public void SetTransactions()
         {
+            List<int> tr = new List<int>()  { 45, 34, 3, 36, 5, 6, 7, 44, 38, 51, 11, 12, 59, 14, 15, 16, 17, 18, 19, 43, 52 };
+            List<int> tr1 = new List<int>() { 45, 46, 3, 36, 5, 6, 7, 25, 38, 51, 11, 12, 13, 14, 15, 16, 17, 18, 31, 49, 52 };
+            List<int> tr2 = new List<int>() { 27, 46, 3, 36, 5, 6, 7, 42, 38, 51, 11, 12, 59, 62, 15, 16, 17, 18, 31, 49, 52 };
+            
             foreach (var item in tr)
             {
-                this.trS[0].Add(item);
+                this.trs[0].Add(item);
             }
 
             foreach (var item in tr1)
             {
-                this.trS[1].Add(item);
+                this.trs[1].Add(item);
             }
 
             foreach (var item in tr2)
             {
-                this.trS[2].Add(item);
+                this.trs[2].Add(item);
+            }
+
+            foreach (var transaction in this.trs)
+            {
+                Assert.That(transaction.Count, Is.Positive);
             }
         }
 
-        [TestMethod]
+        private void CheckClusterStats(Cluster actualCluster, ExpectedClusterStats expectedCluster) 
+        {
+            Assert.Multiple(new Action(() =>
+            {
+                Assert.That(actualCluster.N, Is.EqualTo(expectedCluster.N), $"Количество транзакций в кластере {actualCluster.N}, должно быть {expectedCluster.N}");
+                Assert.That(actualCluster.S, Is.EqualTo(expectedCluster.S), $"Количество элементов транзакций в кластере {actualCluster.S}, должно быть {expectedCluster.S}");
+                Assert.That(actualCluster.W, Is.EqualTo(expectedCluster.W), $"Количество **уникальных** элементов в кластере {actualCluster.W}, должно быть {expectedCluster.W}");
+            }));
+        }
+
+        private static double Profit(int s, int n, int w, double r)
+        {
+            return s * n / Math.Pow(w, r);
+        }
+
+        [Test]
         public void AddTransaction()
         {
-            Clusters.Cluster cluster = new Clusters.Cluster(0);
+            Cluster cluster = new Cluster(0);
 
-            cluster.AddTransaction(trS[0]);
+            cluster.AddTransaction(trs[0]);
 
-            Assert.AreEqual(1, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(21, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(21, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 1, S = 21, W = 21 });
         }
 
-        [TestMethod]
+        [Test]
         public void AddTransactions()
         {
-            Clusters.Cluster cluster = new Clusters.Cluster(0);
+            Cluster cluster = new Cluster(0);
 
-            foreach (var tr in this.trS)
+            foreach (var tr in this.trs)
             {
                 cluster.AddTransaction(tr);
             }
 
-            Assert.AreEqual(3, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(63, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(29, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 3, S = 63, W = 29 });
         }
 
-        [TestMethod]
+        [Test]
         public void RemoveTransaction()
         {
-            Clusters.Cluster cluster = new Clusters.Cluster(0);
+            Cluster cluster = new Cluster(0);
 
-            cluster.AddTransaction(trS[0]);
+            cluster.AddTransaction(trs[0]);
 
-            Assert.AreEqual(1, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(21, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(21, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 1, S = 21, W = 21 });
 
-            cluster.RemoveTransaction(trS[0]);
+            cluster.RemoveTransaction(trs[0]);
 
-            Assert.AreEqual(0, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(0, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(0, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 0, S = 0, W = 0 });
         }
 
-        [TestMethod]
+        [Test]
         public void RemoveTransactions()
         {
-            Clusters.Cluster cluster = new Clusters.Cluster(0);
+            Cluster cluster = new Cluster(0);
 
-            foreach (var tr in this.trS)
+            foreach (var tr in this.trs)
             {
                 cluster.AddTransaction(tr);
             }
 
-            Assert.AreEqual(3, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(63, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(29, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 3, S = 63, W = 29 });
 
             // удаление транзакции tr
-            cluster.RemoveTransaction(trS[0]);
+            cluster.RemoveTransaction(trs[0]);
 
-            Assert.AreEqual(2, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(42, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(25, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
-
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 2, S = 42, W = 25 });
+            
             // удаление транзакции tr1
-            cluster.RemoveTransaction(trS[1]);
+            cluster.RemoveTransaction(trs[1]);
 
-            Assert.AreEqual(1, cluster.N, "Неправильное количество трапнзакций в кластере");
-            Assert.AreEqual(21, cluster.S, "Неправильное количество элементов транзакций в кластере");
-            Assert.AreEqual(21, cluster.W, "Неправильное количество **уникальных** элементов в кластере");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = 1, S = 21, W = 21 });
         }
 
-        [TestMethod]
+        [Test]
         public void RemoveAddRestore()
         {
-            Clusters.Cluster cluster = new Clusters.Cluster(0);
+            Cluster cluster = new Cluster(0);
 
-            foreach (var tr in this.trS)
+            foreach (var tr in this.trs)
             {
                 cluster.AddTransaction(tr);
             }
@@ -116,12 +135,69 @@ namespace CLOPE.Tests
             int s = cluster.S;
             int w = cluster.W;
 
-            cluster.RemoveTransaction(trS[1]);
-            cluster.AddTransaction(trS[1]);
+            cluster.RemoveTransaction(trs[1]);
+            cluster.AddTransaction(trs[1]);
 
-            Assert.AreEqual(n, cluster.N, "N должен восстановиться после Remove + Add");
-            Assert.AreEqual(s, cluster.S, "S должен восстановиться после Remove + Add");
-            Assert.AreEqual(w, cluster.W, "W должен восстановиться после Remove + Add");
+            CheckClusterStats(cluster, new ExpectedClusterStats() { N = n, S = s, W = w });
+        }
+
+        [Test]
+        public void DeltaAddEmptyCluster()
+        {
+            Cluster cluster = new Cluster(0);
+
+            double expected = Profit(21, 1, 21, this.repulsion26);
+
+            Assert.That(cluster.DeltaAdd(trs[0], this.repulsion26), Is.EqualTo(expected).Within(1e-9));
+        }
+
+        [Test]
+        public void DeltaAddNonEmptyCluster()
+        {
+            Cluster cluster = new Cluster(0);
+
+            cluster.AddTransaction(trs[0]);
+
+            // newS=42, newW=26 (5 новых уникальных: 46, 25, 13, 31, 49)
+            double expected = Profit(42, 2, 26, this.repulsion26) - Profit(21, 1, 21, this.repulsion26);
+
+            Assert.That(cluster.DeltaAdd(trs[1], this.repulsion26), Is.EqualTo(expected).Within(1e-9));
+        }
+
+        [Test]
+        public void DeltaRemoveEmptyCluster()
+        {
+            Cluster cluster = new Cluster(0);
+
+            Assert.That(cluster.DeltaRemove(trs[0], this.repulsion26), Is.EqualTo(0).Within(1e-9));
+        }
+
+        [Test]
+        public void DeltaRemoveLastTransaction()
+        {
+            Cluster cluster = new Cluster(0);
+
+            cluster.AddTransaction(trs[0]);
+
+            double expected = Profit(21, 1, 21, this.repulsion26);
+
+            Assert.That(cluster.DeltaRemove(trs[0], this.repulsion26), Is.EqualTo(expected).Within(1e-9));
+        }
+
+        [Test]
+        public void DeltaRemoveFromClusterWithThree()
+        {
+            Cluster cluster = new Cluster(0);
+
+            foreach (var tr in this.trs)
+            {
+                cluster.AddTransaction(tr);
+            }
+
+            // W падает на 4 уникальных только у trs[0]: 34, 44, 19, 43
+            double expected = Profit(42, 2, 25, this.repulsion26) - Profit(63, 3, 29, this.repulsion26);
+
+            Assert.That(cluster.DeltaRemove(trs[0], this.repulsion26), Is.EqualTo(expected).Within(1e-9));
         }
     }
 }
