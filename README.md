@@ -28,7 +28,11 @@ dotnet run
 
 ## Тесты
 
-`Tests` — unit тесты на NUnit.
+`Tests` — NUnit тесты. Из корня репозитория:
+
+```
+dotnet test
+```
 
 ## Структура
 

@@ -62,7 +62,7 @@ namespace CLOPE.Tests
                 Assert.Multiple(new Action(() =>
                 {
                     Assert.That(res, Is.True, $"У транзакции id {tr.Id} должен быть закрепленный кластер");
-                    Assert.That(clusterId, Is.Not.Null, $"У транзакции id {tr.Id} должен быть закрепленный кластер. Получен id кластера ${clusterId}");
+                    Assert.That(clusterId, Is.GreaterThanOrEqualTo(0), $"У транзакции id {tr.Id} должен быть закрепленный кластер. Получен id кластера {clusterId}");
                 }));
             }
 
